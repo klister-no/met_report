@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="no">
 <head>
@@ -7,495 +6,170 @@
 <title>Klimarisikorapport — Frukt &amp; Grønt Supply Chain</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
-
 <style>
-  :root {
-    --navy:      #0f2044;
-    --blue:      #1a3a6b;
-    --mid-blue:  #2458a8;
-    --accent:    #3b82f6;
-    --teal:      #0891b2;
-    --sky:       #e0f0ff;
-    --slate:     #64748b;
-    --text:      #1e293b;
-    --muted:     #64748b;
-    --border:    #cbd5e1;
-    --bg:        #f8fafc;
-    --white:     #ffffff;
-    --green-bg:  #dcfce7; --green-text: #166534; --green-border: #86efac;
-    --yellow-bg: #fef9c3; --yellow-text: #854d0e; --yellow-border: #fde047;
-    --blue-bg:   #dbeafe; --blue-text:   #1e40af; --blue-border:  #93c5fd;
-    --red-bg:    #fee2e2; --red-text:    #991b1b; --red-border:   #fca5a5;
-    --orange-bg: #ffedd5; --orange-text: #9a3412; --orange-border:#fdba74;
-    --gray-bg:   #f1f5f9;
-  }
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--text);
-    background: var(--bg);
-  }
-
-  /* ── HEADER ──────────────────────────────────────────────────────────────── */
-  .site-header {
-    background: var(--navy);
-    color: white;
-    padding: 0 2rem;
-  }
-  .header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem 0 0.5rem;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-  }
-  .header-badges {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-  .badge {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 3px 8px;
-    border-radius: 3px;
-    border: 1px solid rgba(255,255,255,0.25);
-    color: rgba(255,255,255,0.75);
-  }
-  .badge.accent { background: var(--accent); border-color: var(--accent); color: white; }
-
-  .header-main { padding: 1.5rem 0 1.25rem; }
-  .header-main h1 {
-    font-family: 'Fraunces', serif;
-    font-size: 2rem;
-    font-weight: 300;
-    letter-spacing: -0.01em;
-    line-height: 1.2;
-    margin-bottom: 0.5rem;
-  }
-  .header-main h1 em { font-style: italic; color: #93c5fd; }
-  .header-subtitle {
-    font-size: 13px;
-    color: rgba(255,255,255,0.6);
-    max-width: 700px;
-    line-height: 1.5;
-  }
-  .header-meta {
-    display: flex;
-    gap: 1.5rem;
-    flex-wrap: wrap;
-    margin-top: 1rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid rgba(255,255,255,0.08);
-    font-size: 11px;
-    color: rgba(255,255,255,0.45);
-    font-family: 'IBM Plex Mono', monospace;
-    letter-spacing: 0.03em;
-  }
-  .header-meta span { display: flex; align-items: center; gap: 0.35rem; }
-
-  /* ── NAV TABS ─────────────────────────────────────────────────────────────── */
-  .nav-tabs {
-    background: var(--navy);
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    padding: 0 2rem;
-    display: flex;
-    gap: 0;
-    overflow-x: auto;
-  }
-  .nav-tab {
-    display: inline-block;
-    padding: 0.75rem 1.1rem;
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.5);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: color 0.15s, border-color 0.15s;
-    white-space: nowrap;
-    user-select: none;
-  }
-  .nav-tab:hover { color: rgba(255,255,255,0.85); }
-  .nav-tab.active { color: white; border-bottom-color: var(--accent); }
-
-  /* ── MAIN LAYOUT ──────────────────────────────────────────────────────────── */
-  .main-content {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 2rem;
-  }
-
-  .tab-panel { display: none; }
-  .tab-panel.active { display: block; }
-
-  /* ── SECTION HEADINGS ────────────────────────────────────────────────────── */
-  .section-header {
-    display: flex;
-    align-items: baseline;
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 2px solid var(--navy);
-  }
-  .section-header h2 {
-    font-family: 'Fraunces', serif;
-    font-size: 1.35rem;
-    font-weight: 300;
-    color: var(--navy);
-    letter-spacing: -0.01em;
-  }
-  .section-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  .subsection { margin-top: 2rem; }
-  .subsection-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--blue);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 1rem;
-    padding-left: 0.75rem;
-    border-left: 3px solid var(--accent);
-  }
-
-  /* ── OVERVIEW CARDS ──────────────────────────────────────────────────────── */
-  .kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-  }
-  .kpi-card {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 1rem 1.25rem;
-    border-top: 3px solid var(--accent);
-  }
-  .kpi-card.risk-high   { border-top-color: #ef4444; }
-  .kpi-card.risk-mod    { border-top-color: #f97316; }
-  .kpi-card.risk-low    { border-top-color: #22c55e; }
-  .kpi-card.info        { border-top-color: var(--teal); }
-  .kpi-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 0.35rem;
-  }
-  .kpi-value {
-    font-family: 'Fraunces', serif;
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: var(--navy);
-    line-height: 1.1;
-  }
-  .kpi-sub {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 0.25rem;
-  }
-
-  /* ── RISK ALERT BOX ──────────────────────────────────────────────────────── */
-  .alert-box {
-    border-radius: 6px;
-    padding: 1rem 1.25rem;
-    margin-bottom: 1.5rem;
-    border-left: 4px solid;
-    font-size: 13px;
-    line-height: 1.6;
-  }
-  .alert-box.critical { background: var(--red-bg); border-color: #ef4444; color: var(--red-text); }
-  .alert-box.warning  { background: var(--orange-bg); border-color: #f97316; color: var(--orange-text); }
-  .alert-box.info     { background: var(--blue-bg); border-color: var(--accent); color: var(--blue-text); }
-  .alert-box.success  { background: var(--green-bg); border-color: #22c55e; color: var(--green-text); }
-  .alert-box strong   { display: block; margin-bottom: 0.25rem; font-weight: 700; }
-
-  /* ── TABLES ──────────────────────────────────────────────────────────────── */
-  .table-wrap {
-    overflow-x: auto;
-    margin-bottom: 1.5rem;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12.5px;
-  }
-  thead th {
-    background: var(--navy);
-    color: white;
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    padding: 0.6rem 0.85rem;
-    text-align: left;
-    white-space: nowrap;
-  }
-  thead th:not(:first-child) { text-align: center; }
-  tbody tr:nth-child(even) { background: #f8fafc; }
-  tbody tr:hover { background: #f0f6ff; }
-  tbody td {
-    padding: 0.6rem 0.85rem;
-    border-bottom: 1px solid #e8eef5;
-    vertical-align: middle;
-  }
-  tbody td:not(:first-child) { text-align: center; }
-  .region-name { font-weight: 500; color: var(--navy); }
-  .region-country {
-    font-size: 10px;
-    font-family: 'IBM Plex Mono', monospace;
-    color: var(--muted);
-    display: block;
-    margin-top: 1px;
-  }
-
-  /* ── RISK PILLS ──────────────────────────────────────────────────────────── */
-  .pill {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  .pill-high   { background: var(--red-bg);    color: var(--red-text);    border: 1px solid var(--red-border); }
-  .pill-mod    { background: var(--orange-bg);  color: var(--orange-text); border: 1px solid var(--orange-border); }
-  .pill-low    { background: var(--green-bg);   color: var(--green-text);  border: 1px solid var(--green-border); }
-  .pill-warm   { background: var(--orange-bg);  color: var(--orange-text); border: 1px solid var(--orange-border); }
-  .pill-normal { background: var(--yellow-bg);  color: var(--yellow-text); border: 1px solid var(--yellow-border); }
-  .pill-cool   { background: var(--blue-bg);    color: var(--blue-text);   border: 1px solid var(--blue-border); }
-
-  /* ── TREND ARROWS ────────────────────────────────────────────────────────── */
-  .trend-up   { color: #f97316; font-weight: 700; }
-  .trend-down { color: #3b82f6; font-weight: 700; }
-  .trend-flat { color: var(--muted); }
-
-  /* ── ANOMALY VALUE ───────────────────────────────────────────────────────── */
-  .anom-pos { color: #ea580c; font-weight: 600; font-family: 'IBM Plex Mono', monospace; }
-  .anom-neg { color: #2563eb; font-weight: 600; font-family: 'IBM Plex Mono', monospace; }
-  .anom-neu { color: var(--slate); font-family: 'IBM Plex Mono', monospace; }
-  .mono     { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
-
-  /* ── INFO CARDS (narrative) ──────────────────────────────────────────────── */
-  .info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
-    margin: 1.5rem 0;
-  }
-  .info-card {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 1.1rem 1.25rem;
-  }
-  .info-card-icon {
-    font-size: 1.25rem;
-    margin-bottom: 0.5rem;
-    display: block;
-  }
-  .info-card-title {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--navy);
-    margin-bottom: 0.35rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  .info-card-body {
-    font-size: 12.5px;
-    color: #374151;
-    line-height: 1.55;
-  }
-
-  /* ── CONFIDENCE METER ────────────────────────────────────────────────────── */
-  .confidence-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1rem;
-    margin: 1rem 0 1.5rem;
-  }
-  .confidence-card {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 1rem;
-  }
-  .confidence-region { font-size: 12px; font-weight: 600; color: var(--navy); margin-bottom: 0.35rem; }
-  .confidence-level {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    padding: 2px 8px;
-    border-radius: 3px;
-    margin-bottom: 0.4rem;
-    display: inline-block;
-  }
-  .conf-high { background: #dcfce7; color: #166534; }
-  .conf-mod  { background: #fef9c3; color: #854d0e; }
-  .conf-low  { background: #fee2e2; color: #991b1b; }
-  .confidence-note { font-size: 11px; color: var(--muted); line-height: 1.45; }
-
-  /* ── TIMELINE / FORECAST ─────────────────────────────────────────────────── */
-  .forecast-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-  @media (max-width: 700px) { .forecast-grid { grid-template-columns: 1fr; } }
-  .forecast-card {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;
-  }
-  .forecast-card-header {
-    background: var(--gray-bg);
-    padding: 0.65rem 1rem;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: var(--navy);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .precision-tag {
-    font-size: 10px;
-    padding: 1px 6px;
-    border-radius: 3px;
-    background: var(--blue-bg);
-    color: var(--blue-text);
-    font-weight: 600;
-  }
-  .precision-tag.low { background: var(--orange-bg); color: var(--orange-text); }
-  .forecast-rows { padding: 0.5rem 0; }
-  .forecast-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.45rem 1rem;
-    border-bottom: 1px solid #f1f5f9;
-    font-size: 12.5px;
-  }
-  .forecast-row:last-child { border-bottom: none; }
-  .forecast-region { color: var(--navy); font-weight: 500; }
-  .forecast-signal { font-weight: 600; font-size: 13px; }
-
-  /* ── SOURCE NOTE ─────────────────────────────────────────────────────────── */
-  .source-note {
-    font-size: 11.5px;
-    color: var(--muted);
-    background: var(--gray-bg);
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    padding: 0.75rem 1rem;
-    margin-top: 1rem;
-    line-height: 1.5;
-  }
-  .source-note strong { color: var(--text); }
-
-  /* ── CHANGE LOG TABLE ────────────────────────────────────────────────────── */
-  .change-row-up   td:first-child::before { content: '▲ '; color: #f97316; }
-  .change-row-down td:first-child::before { content: '▼ '; color: #3b82f6; }
-  .change-row-same td:first-child::before { content: '— '; color: var(--muted); }
-
-  /* ── FOOTER ──────────────────────────────────────────────────────────────── */
-  .site-footer {
-    background: var(--navy);
-    color: rgba(255,255,255,0.45);
-    text-align: center;
-    padding: 1.5rem 2rem;
-    font-size: 11px;
-    font-family: 'IBM Plex Mono', monospace;
-    letter-spacing: 0.04em;
-    margin-top: 3rem;
-    line-height: 1.8;
-  }
-
-  /* ── UTILITY ─────────────────────────────────────────────────────────────── */
-  .mt-1 { margin-top: 0.5rem; }
-  .mt-2 { margin-top: 1rem; }
-  .mt-3 { margin-top: 1.5rem; }
-  .mb-1 { margin-bottom: 0.5rem; }
-  .mb-2 { margin-bottom: 1rem; }
-  .text-muted { color: var(--muted); font-size: 12px; }
-  .italic { font-style: italic; }
-
-  /* PORT STATUS */
-  .port-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-  .port-card { background: white; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
-  .port-card-header { padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
-  .port-card-header.port-ok       { background: #f0fdf4; border-left: 4px solid #22c55e; }
-  .port-card-header.port-warning  { background: #fff7ed; border-left: 4px solid #f97316; }
-  .port-card-header.port-critical { background: #fef2f2; border-left: 4px solid #ef4444; }
-  .port-name { font-weight: 700; color: var(--navy); font-size: 13px; }
-  .port-country { font-size: 10px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; margin-top: 1px; }
-  .port-body { padding: 0.75rem 1rem; font-size: 12.5px; color: #374151; line-height: 1.55; }
-  .port-meta { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem; font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
-
-  /* FERRY */
-  .ferry-card { background: white; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 1rem; }
-  .ferry-header { padding: 0.85rem 1.1rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 0.5rem; }
-  .ferry-header.ferry-ok       { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-left: 4px solid #22c55e; }
-  .ferry-header.ferry-warning  { background: linear-gradient(135deg, #fff7ed, #ffedd5); border-left: 4px solid #f97316; }
-  .ferry-header.ferry-critical { background: linear-gradient(135deg, #fef2f2, #fee2e2); border-left: 4px solid #ef4444; }
-  .ferry-title { font-weight: 700; font-size: 14px; color: var(--navy); }
-  .ferry-route { font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
-  .ferry-body { padding: 0.85rem 1.1rem; }
-  .ferry-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 0.75rem; }
-  .ferry-stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
-  .ferry-stat-value { font-size: 13px; font-weight: 600; color: var(--navy); font-family: 'IBM Plex Mono', monospace; }
-  .ferry-note { font-size: 12.5px; color: #374151; line-height: 1.55; }
-
-  /* NEWS */
-  .news-grid { display: grid; gap: 0.75rem; margin-bottom: 1.5rem; }
-  .news-item { background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.85rem 1.1rem; display: flex; gap: 1rem; align-items: flex-start; }
-  .news-item.news-high     { border-left: 4px solid #ef4444; }
-  .news-item.news-moderate { border-left: 4px solid #f97316; }
-  .news-item.news-info     { border-left: 4px solid var(--accent); }
-  .news-source-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
-  .tag-reuters   { background: #fef9c3; color: #854d0e; }
-  .tag-bbc       { background: #fee2e2; color: #991b1b; }
-  .tag-ap        { background: #dbeafe; color: #1e40af; }
-  .tag-afp       { background: #f3e8ff; color: #6b21a8; }
-  .tag-copernicus{ background: #dcfce7; color: #166534; }
-  .tag-aemet     { background: #e0f2fe; color: #0c4a6e; }
-  .tag-other     { background: var(--gray-bg); color: var(--muted); }
-  .news-content { flex: 1; }
-  .news-headline { font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 0.3rem; line-height: 1.4; }
-  .news-summary { font-size: 12px; color: #374151; line-height: 1.5; }
-  .news-meta { font-size: 10.5px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; margin-top: 0.35rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+:root {
+  --navy:#0f2044;--blue:#1a3a6b;--mid-blue:#2458a8;--accent:#3b82f6;--teal:#0891b2;
+  --sky:#e0f0ff;--slate:#64748b;--text:#1e293b;--muted:#64748b;--border:#cbd5e1;
+  --bg:#f8fafc;--white:#ffffff;
+  --green-bg:#dcfce7;--green-text:#166534;--green-border:#86efac;
+  --yellow-bg:#fef9c3;--yellow-text:#854d0e;--yellow-border:#fde047;
+  --blue-bg:#dbeafe;--blue-text:#1e40af;--blue-border:#93c5fd;
+  --red-bg:#fee2e2;--red-text:#991b1b;--red-border:#fca5a5;
+  --orange-bg:#ffedd5;--orange-text:#9a3412;--orange-border:#fdba74;
+  --gray-bg:#f1f5f9;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'IBM Plex Sans',sans-serif;font-size:14px;line-height:1.6;color:var(--text);background:var(--bg);}
+.site-header{background:var(--navy);color:white;padding:0 1.5rem;}
+.header-top{display:flex;align-items:center;justify-content:space-between;padding:1rem 0 0.5rem;border-bottom:1px solid rgba(255,255,255,0.1);flex-wrap:wrap;gap:0.5rem;}
+.header-badges{display:flex;gap:0.5rem;flex-wrap:wrap;}
+.badge{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:3px 8px;border-radius:3px;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.75);}
+.badge.accent{background:var(--accent);border-color:var(--accent);color:white;}
+.header-main{padding:1.25rem 0 1rem;}
+.header-main h1{font-family:'Fraunces',serif;font-size:clamp(1.3rem,4vw,2rem);font-weight:300;letter-spacing:-0.01em;line-height:1.2;margin-bottom:0.5rem;}
+.header-main h1 em{font-style:italic;color:#93c5fd;}
+.header-subtitle{font-size:12px;color:rgba(255,255,255,0.6);max-width:700px;line-height:1.5;}
+.header-meta{display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid rgba(255,255,255,0.08);font-size:11px;color:rgba(255,255,255,0.55);font-family:'IBM Plex Mono',monospace;}
+.nav-tabs{background:var(--navy);border-bottom:1px solid rgba(255,255,255,0.1);padding:0 1.5rem;display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.nav-tabs::-webkit-scrollbar{display:none;}
+.nav-tab{display:inline-block;padding:0.7rem 0.9rem;font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:rgba(255,255,255,0.5);cursor:pointer;border-bottom:2px solid transparent;transition:color 0.15s,border-color 0.15s;white-space:nowrap;user-select:none;}
+.nav-tab:hover{color:rgba(255,255,255,0.85);}
+.nav-tab.active{color:white;border-bottom-color:var(--accent);}
+.main-content{max-width:1280px;margin:0 auto;padding:1.25rem 1rem;}
+@media(min-width:768px){.main-content{padding:1.75rem 2rem;}}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+.section-header{display:flex;align-items:baseline;gap:0.75rem;margin-bottom:1.25rem;padding-bottom:0.75rem;border-bottom:2px solid var(--navy);flex-wrap:wrap;}
+.section-header h2{font-family:'Fraunces',serif;font-size:clamp(1.1rem,3vw,1.35rem);font-weight:300;color:var(--navy);letter-spacing:-0.01em;}
+.section-label{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
+.subsection{margin-top:2rem;}
+.subsection-title{font-size:12px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:1rem;padding-left:0.75rem;border-left:3px solid var(--accent);}
+.kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.75rem;margin-bottom:1.5rem;}
+@media(min-width:600px){.kpi-grid{grid-template-columns:repeat(4,1fr);}}
+.kpi-card{background:white;border:1px solid var(--border);border-radius:8px;padding:1rem 1.25rem;border-top:3px solid var(--accent);}
+.kpi-card.risk-high{border-top-color:#ef4444;}
+.kpi-card.risk-mod{border-top-color:#f97316;}
+.kpi-card.risk-low{border-top-color:#22c55e;}
+.kpi-card.info{border-top-color:var(--teal);}
+.kpi-label{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.35rem;}
+.kpi-value{font-family:'Fraunces',serif;font-size:2rem;font-weight:600;color:var(--navy);line-height:1.1;}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:0.25rem;}
+.alert-box{border-radius:6px;padding:1rem 1.25rem;margin-bottom:1.5rem;border-left:4px solid;font-size:13px;line-height:1.6;}
+.alert-box.critical{background:var(--red-bg);border-color:#ef4444;color:var(--red-text);}
+.alert-box.warning{background:var(--orange-bg);border-color:#f97316;color:var(--orange-text);}
+.alert-box.info{background:var(--blue-bg);border-color:var(--accent);color:var(--blue-text);}
+.alert-box.success{background:var(--green-bg);border-color:#22c55e;color:var(--green-text);}
+.alert-box strong{display:block;margin-bottom:0.25rem;font-weight:700;}
+.table-wrap{overflow-x:auto;margin-bottom:1rem;border-radius:6px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,0.04);-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:480px;}
+thead th{background:var(--navy);color:white;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:0.65rem 0.85rem;text-align:left;white-space:nowrap;}
+thead th:not(:first-child){text-align:center;}
+tbody tr:nth-child(even){background:#f8fafc;}
+tbody tr:hover{background:#f0f6ff;}
+tbody td{padding:0.6rem 0.85rem;border-bottom:1px solid #e8eef5;vertical-align:middle;}
+tbody td:not(:first-child){text-align:center;}
+.region-name{font-weight:500;color:var(--navy);}
+.region-country{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--muted);display:block;margin-top:1px;}
+.table-explainer{background:#f8fafc;border:1px solid var(--border);border-radius:6px;padding:0.85rem 1.1rem;margin-bottom:1.25rem;font-size:12px;color:var(--muted);line-height:1.6;}
+.table-explainer strong{color:var(--text);}
+.table-explainer ul{margin:0.35rem 0 0 1.1rem;}
+.table-explainer li{margin-bottom:0.15rem;}
+.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+.pill-high{background:var(--red-bg);color:var(--red-text);border:1px solid var(--red-border);}
+.pill-mod{background:var(--orange-bg);color:var(--orange-text);border:1px solid var(--orange-border);}
+.pill-low{background:var(--green-bg);color:var(--green-text);border:1px solid var(--green-border);}
+.pill-cool{background:var(--blue-bg);color:var(--blue-text);border:1px solid var(--blue-border);}
+.trend-up{color:#f97316;font-weight:700;}
+.trend-down{color:#3b82f6;font-weight:700;}
+.trend-flat{color:var(--muted);}
+.anom-pos{color:#ea580c;font-weight:600;font-family:'IBM Plex Mono',monospace;}
+.anom-neg{color:#2563eb;font-weight:600;font-family:'IBM Plex Mono',monospace;}
+.anom-neu{color:var(--slate);font-family:'IBM Plex Mono',monospace;}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:12px;}
+.info-grid{display:grid;grid-template-columns:1fr;gap:1rem;margin:1.5rem 0;}
+@media(min-width:600px){.info-grid{grid-template-columns:repeat(2,1fr);}}
+@media(min-width:900px){.info-grid{grid-template-columns:repeat(3,1fr);}}
+.info-card{background:white;border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.info-card-icon{font-size:1.25rem;margin-bottom:0.5rem;display:block;}
+.info-card-title{font-size:12px;font-weight:700;color:var(--navy);margin-bottom:0.35rem;text-transform:uppercase;letter-spacing:0.04em;}
+.info-card-body{font-size:12.5px;color:#374151;line-height:1.55;}
+.confidence-grid{display:grid;grid-template-columns:1fr;gap:1rem;margin:1rem 0 1.5rem;}
+@media(min-width:600px){.confidence-grid{grid-template-columns:repeat(2,1fr);}}
+@media(min-width:900px){.confidence-grid{grid-template-columns:repeat(3,1fr);}}
+.confidence-card{background:white;border:1px solid var(--border);border-radius:8px;padding:1rem;}
+.confidence-region{font-size:12px;font-weight:600;color:var(--navy);margin-bottom:0.35rem;}
+.confidence-level{font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:2px 8px;border-radius:3px;margin-bottom:0.4rem;display:inline-block;}
+.conf-high{background:#dcfce7;color:#166534;}
+.conf-mod{background:#fef9c3;color:#854d0e;}
+.conf-low{background:#fee2e2;color:#991b1b;}
+.confidence-note{font-size:11px;color:var(--muted);line-height:1.45;}
+.forecast-grid{display:grid;grid-template-columns:1fr;gap:1.5rem;margin-bottom:1.5rem;}
+@media(min-width:700px){.forecast-grid{grid-template-columns:1fr 1fr;}}
+.forecast-card{background:white;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.forecast-card-header{background:var(--gray-bg);padding:0.65rem 1rem;font-size:11px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--navy);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;}
+.precision-tag{font-size:10px;padding:1px 6px;border-radius:3px;background:var(--blue-bg);color:var(--blue-text);font-weight:600;}
+.precision-tag.low{background:var(--orange-bg);color:var(--orange-text);}
+.forecast-rows{padding:0.5rem 0;}
+.forecast-row{display:flex;align-items:flex-start;justify-content:space-between;padding:0.45rem 1rem;border-bottom:1px solid #f1f5f9;font-size:12px;gap:0.5rem;flex-wrap:wrap;}
+.forecast-row:last-child{border-bottom:none;}
+.forecast-region{color:var(--navy);font-weight:500;white-space:nowrap;}
+.forecast-signal{font-weight:600;}
+.source-note{font-size:11.5px;color:var(--muted);background:var(--gray-bg);border:1px solid var(--border);border-radius:5px;padding:0.75rem 1rem;margin-top:1rem;line-height:1.5;}
+.source-note strong{color:var(--text);}
+.change-row-up td:first-child::before{content:'▲ ';color:#f97316;}
+.change-row-down td:first-child::before{content:'▼ ';color:#3b82f6;}
+.change-row-same td:first-child::before{content:'— ';color:var(--muted);}
+.port-grid{display:grid;grid-template-columns:1fr;gap:1rem;margin-bottom:1.5rem;}
+@media(min-width:600px){.port-grid{grid-template-columns:repeat(2,1fr);}}
+.port-card{background:white;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.port-card-header{padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:0.5rem;}
+.port-card-header.port-ok{background:#f0fdf4;border-left:4px solid #22c55e;}
+.port-card-header.port-warning{background:#fff7ed;border-left:4px solid #f97316;}
+.port-card-header.port-critical{background:#fef2f2;border-left:4px solid #ef4444;}
+.port-name{font-weight:700;color:var(--navy);font-size:13px;}
+.port-country{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:1px;}
+.port-body{padding:0.75rem 1rem;font-size:12.5px;color:#374151;line-height:1.55;}
+.port-meta{display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:0.5rem;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+.ferry-card{background:white;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:1rem;}
+.ferry-header{padding:0.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:0.5rem;}
+.ferry-header.ferry-ok{background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-left:4px solid #22c55e;}
+.ferry-header.ferry-warning{background:linear-gradient(135deg,#fff7ed,#ffedd5);border-left:4px solid #f97316;}
+.ferry-title{font-weight:700;font-size:14px;color:var(--navy);}
+.ferry-route{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:2px;}
+.ferry-body{padding:0.85rem 1.1rem;}
+.ferry-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:0.75rem;margin-bottom:0.75rem;}
+@media(min-width:500px){.ferry-stats{grid-template-columns:repeat(4,1fr);}}
+.ferry-stat-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);}
+.ferry-stat-value{font-size:13px;font-weight:600;color:var(--navy);font-family:'IBM Plex Mono',monospace;}
+.ferry-note{font-size:12.5px;color:#374151;line-height:1.55;}
+.news-grid{display:grid;gap:0.75rem;margin-bottom:1.5rem;}
+.news-item{background:white;border:1px solid var(--border);border-radius:8px;padding:0.85rem 1.1rem;display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;}
+.news-item.news-high{border-left:4px solid #ef4444;}
+.news-item.news-moderate{border-left:4px solid #f97316;}
+.news-item.news-info{border-left:4px solid var(--accent);}
+.news-source-tag{font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:2px 7px;border-radius:3px;white-space:nowrap;flex-shrink:0;margin-top:2px;}
+.tag-reuters{background:#fef9c3;color:#854d0e;}
+.tag-bbc{background:#fee2e2;color:#991b1b;}
+.tag-ap{background:#dbeafe;color:#1e40af;}
+.tag-afp{background:#f3e8ff;color:#6b21a8;}
+.tag-copernicus{background:#dcfce7;color:#166534;}
+.tag-aemet{background:#e0f2fe;color:#0c4a6e;}
+.tag-other{background:var(--gray-bg);color:var(--muted);}
+.news-content{flex:1;min-width:200px;}
+.news-headline{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:0.3rem;line-height:1.4;}
+.news-summary{font-size:12px;color:#374151;line-height:1.5;}
+.news-meta{font-size:10.5px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:0.35rem;display:flex;gap:1rem;flex-wrap:wrap;}
+.site-footer{background:var(--navy);color:rgba(255,255,255,0.45);text-align:center;padding:1.5rem 1rem;font-size:11px;font-family:'IBM Plex Mono',monospace;letter-spacing:0.04em;margin-top:3rem;line-height:1.8;}
+.mt-1{margin-top:0.5rem;}.mt-2{margin-top:1rem;}.mt-3{margin-top:1.5rem;}
+.mb-1{margin-bottom:0.5rem;}.mb-2{margin-bottom:1rem;}
+.text-muted{color:var(--muted);font-size:12px;}.italic{font-style:italic;}
+.scroll-hint{font-size:11px;color:var(--muted);margin-bottom:0.4rem;display:none;text-align:right;}
+@media(max-width:600px){.scroll-hint{display:block;}}
+.status-icon{font-size:1.1rem;}
 </style>
 </head>
-
 <body>
 
-<!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
 <header class="site-header">
   <div class="header-top">
     <div class="header-badges">
@@ -505,697 +179,405 @@
       <span class="badge">Havner &amp; Transport</span>
     </div>
   </div>
-
   <div class="header-main">
     <h1>Klimarisikorapport — <em>Daglig</em></h1>
-    <p class="header-subtitle">
-      Vær, temperaturavvik og forsyningsrisiko for produksjonsregioner i Italia, Spania, Portugal og Marokko.
-      Havnestatus for Nederland og Spania. Fergeovergangen Tanger Med–Algeciras.
-      Oppdateres kl. 06:00 og 21:00 daglig.
-    </p>
-
+    <p class="header-subtitle">Vær, temperaturavvik og forsyningsrisiko for produksjonsregioner i Italia, Spania, Portugal og Marokko. Havnestatus for Nederland og Spania. Fergeovergangen Tanger Med–Algeciras. Oppdateres kl. 06:00 og 21:00 daglig.</p>
     <div class="header-meta">
-      <span>
-        Sist oppdatert:
-        <!-- DATA:LAST_UPDATED_START -->Uke 8, 2026<!-- DATA:LAST_UPDATED_END -->
-      </span>
-      <span>
-        <strong>Datakvalitet:</strong> Temperaturintervaller er estimater. Stasjonsnøyaktige data tilgjengelig for Spania (AEMET) ved aktivering av API-nøkkel.
-      </span>
+      <span>📅 Sist oppdatert: <!-- DATA:LAST_UPDATED_START -->Uke 8, 2026<!-- DATA:LAST_UPDATED_END --></span>
+      <span>🔗 Open-Meteo · AEMET · IPMA · DMN · ESA Copernicus · met.no · ECMWF</span>
     </div>
   </div>
 </header>
 
-<!-- ── NAV TABS ───────────────────────────────────────────────────────────── -->
 <nav class="nav-tabs" aria-label="Rapportfaner">
-  <div class="nav-tab active" data-tab="nedbor">Nedbør</div>
+  <div class="nav-tab active" data-tab="oversikt">Oversikt</div>
+  <div class="nav-tab" data-tab="temperatur">Temperatur 🌡️</div>
+  <div class="nav-tab" data-tab="nedbor">Nedbør 🌧️</div>
   <div class="nav-tab" data-tab="trend">Trendlinje</div>
   <div class="nav-tab" data-tab="prognose">Prognoser</div>
   <div class="nav-tab" data-tab="supplychain">Supply Chain</div>
+  <div class="nav-tab" data-tab="havner">Havner ⚓</div>
+  <div class="nav-tab" data-tab="nyheter">Nyheter 📰</div>
   <div class="nav-tab" data-tab="endring">Endring</div>
-  <div class="nav-tab" data-tab="havner">Havner &amp; Ferge</div>
-  <div class="nav-tab" data-tab="nyheter">Nyheter</div>
   <div class="nav-tab" data-tab="norway">Norge 🇳🇴</div>
   <div class="nav-tab" data-tab="ecmwf">ECMWF 🌐</div>
 </nav>
 
 <main class="main-content">
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!-- TAB: NEDBØR                                                            -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<section class="tab-panel active" id="tab-nedbor">
+<!-- ═══ TAB: OVERSIKT ═══════════════════════════════════════════════════════ -->
+<section class="tab-panel active" id="tab-oversikt">
+  <div class="section-header">
+    <h2>Markedsoversikt</h2>
+    <span class="section-label"><!-- DATA:LAST_UPDATED_START -->Uke 8, 2026<!-- DATA:LAST_UPDATED_END --></span>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card risk-high">
+      <div class="kpi-label">Regioner — Høy risiko</div>
+      <div class="kpi-value"><!-- KPI:HIGH_COUNT -->4</div>
+      <div class="kpi-sub">Huelva, Sevilla, Lisboa/Algarve, MA-Nord</div>
+    </div>
+    <div class="kpi-card risk-mod">
+      <div class="kpi-label">Regioner — Moderat risiko</div>
+      <div class="kpi-value"><!-- KPI:MOD_COUNT -->0</div>
+      <div class="kpi-sub">Ingen moderat-regioner denne uken</div>
+    </div>
+    <div class="kpi-card risk-low">
+      <div class="kpi-label">Regioner — Lav risiko</div>
+      <div class="kpi-value"><!-- KPI:LOW_COUNT -->8</div>
+      <div class="kpi-sub">IT (4), ES Murcia/Almería, MA Sør, Madrid</div>
+    </div>
+    <div class="kpi-card info">
+      <div class="kpi-label">Modell-confidence</div>
+      <div class="kpi-value" style="font-size:1.1rem;">Høy / Mod.</div>
+      <div class="kpi-sub">Stormhendelser: Høy · Sub-seasonal: Lav</div>
+    </div>
+  </div>
+  <div class="alert-box critical">
+    <strong>⚠️ KRITISK FORSYNINGSSITUASJON — UKE 8/2026</strong>
+    Tre nøkkelregioner rammet simultant av stormsystemene Kristin, Leonardo og Marta (jan.–feb. 2026):
+    Huelva/Andalusia (ES), Lisboa/Algarve (PT) og Nord-Marokko (MA). Estimerte tap: &gt;35 mill. euro.
+    Forventet prispress på jordbær, tomater, agurker, paprika og courgette i minst 3–5 uker.
+  </div>
+  <div class="table-explainer">
+    <strong>📋 Hva viser denne tabellen?</strong> Samlet risikovurdering per produksjonsregion basert på temperaturavvik, nedbørsavvik og klimanormaler (WMO 1991–2020).
+    <ul>
+      <li><strong>Temp-status:</strong> 🔴 Varmere enn normalt · 🟡 Nær normal · 🔵 Kjøligere enn normalt</li>
+      <li><strong>Nedbørs-avvik:</strong> Prosent over/under normalt månedlig nedbør</li>
+      <li><strong>Risiko Høy/Moderat/Lav:</strong> Samlet vurdering av temperatur, nedbør, transport og produksjon</li>
+    </ul>
+  </div>
+  <p class="scroll-hint">← Scroll horisontalt for hele tabellen →</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Region</th><th>Land</th><th>Temp-status</th><th>Nedbørsavvik</th>
+          <th>Temp-risiko</th><th>Nedbørsrisiko</th><th>Transport</th><th>Produksjon</th><th>Samlet</th>
+        </tr>
+      </thead>
+      <tbody>
+<!-- DATA:OVERVIEW_ROWS_START -->
+        <tr><td><span class="region-name">Po-dalen (nord)</span><span class="region-country">IT</span></td><td>🇮🇹 Italia</td><td><span class="status-icon">🟡</span></td><td class="anom-neu">~0%</td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td></tr>
+        <tr><td><span class="region-name">Sentral Italia (Roma)</span><span class="region-country">IT</span></td><td>🇮🇹 Italia</td><td><span class="status-icon">🟡</span></td><td class="anom-neg">–40%</td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td></tr>
+        <tr><td><span class="region-name">Napoli / Amalfi</span><span class="region-country">IT</span></td><td>🇮🇹 Italia</td><td><span class="status-icon">🟡</span></td><td class="anom-neu">~0%</td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td></tr>
+        <tr><td><span class="region-name">Murcia</span><span class="region-country">ES</span></td><td>🇪🇸 Spania</td><td><span class="status-icon">🟡</span></td><td class="anom-pos">+15%</td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td></tr>
+        <tr><td><span class="region-name">Almería</span><span class="region-country">ES</span></td><td>🇪🇸 Spania</td><td><span class="status-icon">🟡</span></td><td class="anom-neu">~0%</td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td></tr>
+        <tr style="background:#fff5f5;"><td><span class="region-name">Huelva</span><span class="region-country">ES</span></td><td>🇪🇸 Spania</td><td><span class="status-icon">🔵</span></td><td class="anom-pos" style="color:#dc2626;font-weight:700;">+350–550%</td><td><span class="pill pill-mod">Moderat</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td></tr>
+        <tr style="background:#fff5f5;"><td><span class="region-name">Sevilla</span><span class="region-country">ES</span></td><td>🇪🇸 Spania</td><td><span class="status-icon">🔵</span></td><td class="anom-pos" style="color:#dc2626;font-weight:700;">+300–450%</td><td><span class="pill pill-mod">Moderat</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td></tr>
+        <tr><td><span class="region-name">Madrid (ref.)</span><span class="region-country">ES</span></td><td>🇪🇸 Spania</td><td><span class="status-icon">🔵</span></td><td class="anom-pos">+60–100%</td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td></tr>
+        <tr style="background:#fff5f5;"><td><span class="region-name">Lisboa / Algarve</span><span class="region-country">PT</span></td><td>🇵🇹 Portugal</td><td><span class="status-icon">🔵</span></td><td class="anom-pos" style="color:#dc2626;font-weight:700;">+150–300%</td><td><span class="pill pill-mod">Moderat</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td></tr>
+        <tr style="background:#fff5f5;"><td><span class="region-name">Nord — Rabat/Loukkos</span><span class="region-country">MA</span></td><td>🇲🇦 Marokko</td><td><span class="status-icon">🔵</span></td><td class="anom-pos" style="color:#dc2626;font-weight:700;">+450–750%</td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td></tr>
+        <tr><td><span class="region-name">Sør — Agadir</span><span class="region-country">MA</span></td><td>🇲🇦 Marokko</td><td><span class="status-icon">🟡</span></td><td class="anom-neu">~0%</td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td></tr>
+<!-- DATA:OVERVIEW_ROWS_END -->
+      </tbody>
+    </table>
+  </div>
+  <div class="source-note">
+    <strong>Merknad:</strong> Risikoclassifisering basert på temperatur- og nedbørsavvik fra klimanormaler (1991–2020). Ekstremhendelser registreres via ESA Copernicus, AEMET, IFRC og pressekilder — ikke automatisk via API.
+  </div>
+</section>
+
+<!-- ═══ TAB: TEMPERATUR ══════════════════════════════════════════════════════ -->
+<section class="tab-panel" id="tab-temperatur">
+  <div class="section-header">
+    <h2>Temperaturmodul — Dag og natt vs. historisk normal</h2>
+    <span class="section-label">Uke 8, 2026</span>
+  </div>
+  <div class="table-explainer">
+    <strong>🌡️ Hva viser denne tabellen?</strong> Observerte dag- og nattetemperaturer sammenlignet med klimanormalen for samme periode.
+    <ul>
+      <li><strong>Dag °C (obs.):</strong> Observert dagtemperatur (typisk makstemperatur) — estimert fra stasjonsnett og ECMWF-reanalyse</li>
+      <li><strong>Normal dag:</strong> Historisk gjennomsnittstemperatur for februar, basert på WMO-normaler 1991–2020</li>
+      <li><strong>Avvik dag:</strong> Differanse fra normalen. Oransje/rødt = varmere, blått = kaldere enn normalt</li>
+      <li><strong>Natt °C:</strong> Nattetemperatur (typisk minstetemperatur) — viktig for frostrisiko og lagringskvalitet</li>
+      <li><strong>Avvik natt:</strong> Tilsvarende for nattetemperatur</li>
+      <li><strong>Status:</strong> 🟢 Mildere enn normalt (&gt;+1,5°C) · 🟡 Nær normal (±1,5°C) · 🔵 Kjøligere enn normalt (&lt;–1,5°C)</li>
+    </ul>
+    <em>Datakvalitet: Temperaturintervaller er estimater. Stasjonsnøyaktige data tilgjengelig for Spania (AEMET) ved aktivering av API-nøkkel.</em>
+  </div>
+  <p class="scroll-hint">← Scroll horisontalt →</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Region</th>
+          <th>Dag °C (obs.)</th><th>Normal dag</th><th>Avvik dag</th>
+          <th>Natt °C (obs.)</th><th>Normal natt</th><th>Avvik natt</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+<!-- DATA:TEMP_ROWS_START -->
+        <tr><td><span class="region-name">Po-dalen (nord)</span><span class="region-country">IT</span></td><td class="mono">6–9°C</td><td class="mono">7–9°C</td><td class="anom-neu">~0</td><td class="mono">1–3°C</td><td class="mono">0–2°C</td><td class="anom-pos">+1</td><td><span class="status-icon">🟡</span></td></tr>
+        <tr><td><span class="region-name">Sentral Italia (Roma)</span><span class="region-country">IT</span></td><td class="mono">11–14°C</td><td class="mono">12–14°C</td><td class="anom-neg">–1</td><td class="mono">3–5°C</td><td class="mono">3–5°C</td><td class="anom-neu">0</td><td><span class="status-icon">🟡</span></td></tr>
+        <tr><td><span class="region-name">Napoli / Amalfi</span><span class="region-country">IT</span></td><td class="mono">13–16°C</td><td class="mono">13–15°C</td><td class="anom-pos">+1</td><td class="mono">6–9°C</td><td class="mono">7–8°C</td><td class="anom-neu">0</td><td><span class="status-icon">🟡</span></td></tr>
+        <tr><td><span class="region-name">Murcia</span><span class="region-country">ES</span></td><td class="mono">14–17°C</td><td class="mono">14–17°C</td><td class="anom-neu">0</td><td class="mono">5–8°C</td><td class="mono">5–7°C</td><td class="anom-pos">+1</td><td><span class="status-icon">🟡</span></td></tr>
+        <tr><td><span class="region-name">Almería</span><span class="region-country">ES</span></td><td class="mono">14–18°C</td><td class="mono">15–18°C</td><td class="anom-neg">–1</td><td class="mono">6–9°C</td><td class="mono">6–9°C</td><td class="anom-neu">0</td><td><span class="status-icon">🟡</span></td></tr>
+        <tr style="background:#f0f4ff;"><td><span class="region-name">Huelva</span><span class="region-country">ES</span></td><td class="mono">11–15°C</td><td class="mono">13–16°C</td><td class="anom-neg" style="color:#2563eb;font-weight:700;">–2</td><td class="mono">5–8°C</td><td class="mono">6–9°C</td><td class="anom-neg" style="color:#2563eb;font-weight:700;">–2</td><td><span class="status-icon">🔵</span></td></tr>
+        <tr style="background:#f0f4ff;"><td><span class="region-name">Sevilla</span><span class="region-country">ES</span></td><td class="mono">11–15°C</td><td class="mono">14–17°C</td><td class="anom-neg" style="color:#2563eb;font-weight:700;">–3</td><td class="mono">4–7°C</td><td class="mono">6–9°C</td><td class="anom-neg" style="color:#2563eb;font-weight:700;">–3</td><td><span class="status-icon">🔵</span></td></tr>
+        <tr style="background:#f0f4ff;"><td><span class="region-name">Madrid (ref.)</span><span class="region-country">ES</span></td><td class="mono">6–10°C</td><td class="mono">8–12°C</td><td class="anom-neg">–2</td><td class="mono">0–3°C</td><td class="mono">2–4°C</td><td class="anom-neg">–2</td><td><span class="status-icon">🔵</span></td></tr>
+        <tr style="background:#f0f4ff;"><td><span class="region-name">Lisboa / Algarve</span><span class="region-country">PT</span></td><td class="mono">12–16°C</td><td class="mono">14–16°C</td><td class="anom-neg">–2</td><td class="mono">5–8°C</td><td class="mono">7–9°C</td><td class="anom-neg">–2</td><td><span class="status-icon">🔵</span></td></tr>
+        <tr style="background:#f0f4ff;"><td><span class="region-name">Nord — Rabat/Loukkos</span><span class="region-country">MA</span></td><td class="mono">15–18°C</td><td class="mono">16–19°C</td><td class="anom-neg">–1</td><td class="mono">8–11°C</td><td class="mono">9–12°C</td><td class="anom-neg">–1</td><td><span class="status-icon">🔵</span></td></tr>
+        <tr><td><span class="region-name">Sør — Agadir</span><span class="region-country">MA</span></td><td class="mono">19–22°C</td><td class="mono">18–22°C</td><td class="anom-pos">+1</td><td class="mono">10–13°C</td><td class="mono">10–13°C</td><td class="anom-neu">0</td><td><span class="status-icon">🟡</span></td></tr>
+<!-- DATA:TEMP_ROWS_END -->
+      </tbody>
+    </table>
+  </div>
+  <div class="source-note">
+    <strong>Normaler:</strong> WMO 1991–2020. <strong>Observerte verdier:</strong> Estimater fra stasjonsnett og ECMWF-reanalyse. Intervaller reflekterer usikkerhet.
+    Blå bakgrunn = kjøligere enn normalt, relevant for veksthastighet og logistikk.
+  </div>
+</section>
+
+<!-- ═══ TAB: NEDBØR ══════════════════════════════════════════════════════════ -->
+<section class="tab-panel" id="tab-nedbor">
   <div class="section-header">
     <h2>Nedbørsmodul — Observert vs. Normal</h2>
     <span class="section-label">1. jan – 20. feb 2026</span>
   </div>
-  <p class="text-muted italic mb-2">Normal = proratert ukesnormal (1991–2020). Farger: 🔴 &gt;150% over normalt · 🟠 50–150% over · Nøytralt: nær normal · 🔵 Under normalt. Datakvalitet angitt per rad.</p>
-
+  <div class="table-explainer">
+    <strong>🌧️ Hva viser denne tabellen?</strong> Observert nedbør sammenlignet med klimanormalen for februar.
+    <ul>
+      <li><strong>Obs. nedbør (mm):</strong> Faktisk målt nedbør hittil i perioden fra 1. januar, i millimeter</li>
+      <li><strong>Normal feb. (mm/mnd):</strong> Historisk forventet nedbør for en typisk februar — WMO-normaler 1991–2020</li>
+      <li><strong>Avvik (mm):</strong> Differanse i millimeter — positivt = mer nedbør enn normalt</li>
+      <li><strong>Avvik (%):</strong> Prosentvis avvik. Over +150% = ekstremt vått (rød). +50–150% = over normalt (oransje). Under –20% = tørrere enn normalt (blå)</li>
+      <li><strong>Datakvalitet Høy:</strong> Bekreftet via primærkilder (AEMET, IPMA, ESA Copernicus). Moderat: ECMWF-estimat</li>
+    </ul>
+  </div>
+  <p class="scroll-hint">← Scroll horisontalt →</p>
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
-          <th>Region</th>
-          <th>Obs. nedbør (mm)</th>
-          <th>Normal feb. (mm/mnd)</th>
-          <th>Avvik (mm)</th>
-          <th>Avvik (%)</th>
-          <th>Datakvalitet</th>
-          <th>Kilde / merknad</th>
+          <th>Region</th><th>Obs. nedbør (mm)</th><th>Normal feb. (mm/mnd)</th>
+          <th>Avvik (mm)</th><th>Avvik (%)</th><th>Datakvalitet</th>
+          <th style="text-align:left;">Kilde / merknad</th>
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td><span class="region-name">Po-dalen (nord)</span><span class="region-country">IT</span></td>
-          <td class="mono">~30–55</td><td class="mono">40–60</td><td class="anom-neu">~0</td>
-          <td><span class="pill pill-low">~–10%</span></td>
-          <td><span class="pill pill-low">Moderat</span></td>
-          <td style="font-size:11px; text-align:left;">ECMWF-estimat. Normalt vintersignal.</td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Sentral Italia (Roma)</span><span class="region-country">IT</span></td>
-          <td class="mono">~30–50</td><td class="mono">70–90</td><td class="anom-neg">–30 / –40</td>
-          <td><span class="pill pill-cool">~–40%</span></td>
-          <td><span class="pill pill-low">Moderat</span></td>
-          <td style="font-size:11px; text-align:left;">Tørrere enn normalt. ECMWF-estimat.</td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Napoli / Amalfi</span><span class="region-country">IT</span></td>
-          <td class="mono">~80–120</td><td class="mono">90–120</td><td class="anom-neu">~0</td>
-          <td><span class="pill pill-low">~0%</span></td>
-          <td><span class="pill pill-low">Moderat</span></td>
-          <td style="font-size:11px; text-align:left;">Nær normal. ECMWF-estimat.</td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Murcia</span><span class="region-country">ES</span></td>
-          <td class="mono">~20–40</td><td class="mono">25–35</td><td class="anom-pos">~+10</td>
-          <td><span class="pill pill-low">~+15%</span></td>
-          <td><span class="pill pill-mod">Moderat</span></td>
-          <td style="font-size:11px; text-align:left;">AEMET klimanormal. Liten innvirkning av stormer.</td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Almería</span><span class="region-country">ES</span></td>
-          <td class="mono">~15–30</td><td class="mono">20–30</td><td class="anom-neu">~0</td>
-          <td><span class="pill pill-low">~0%</span></td>
-          <td><span class="pill pill-mod">Moderat</span></td>
-          <td style="font-size:11px; text-align:left;">AEMET. Skjermet av fjell.</td>
-        </tr>
-        <tr style="background:#fff5f5;">
-          <td><span class="region-name">Huelva</span><span class="region-country">ES</span></td>
-          <td class="mono" style="font-weight:700; color:#dc2626;">~350–600+</td><td class="mono">75–100</td>
-          <td class="anom-pos" style="color:#dc2626; font-weight:700;">+280 til +500</td>
-          <td><span class="pill pill-high" style="font-size:12px;">+350–550%</span></td>
-          <td><span class="pill pill-high">Høy</span></td>
-          <td style="font-size:11px; text-align:left; color:#dc2626;">AEMET/IFAPA 92 stasjoner. Grazalema &gt;500 mm/24t (ESA GPM).</td>
-        </tr>
-        <tr style="background:#fff5f5;">
-          <td><span class="region-name">Sevilla</span><span class="region-country">ES</span></td>
-          <td class="mono" style="font-weight:700; color:#dc2626;">~250–500</td><td class="mono">65–90</td>
-          <td class="anom-pos" style="color:#dc2626; font-weight:700;">+200 til +400</td>
-          <td><span class="pill pill-high" style="font-size:12px;">+300–450%</span></td>
-          <td><span class="pill pill-high">Høy</span></td>
-          <td style="font-size:11px; text-align:left; color:#dc2626;">AEMET/IFAPA. 70–80% over klimanorm for sesongen.</td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Madrid (ref.)</span><span class="region-country">ES</span></td>
-          <td class="mono">~60–90</td><td class="mono">35–45</td><td class="anom-pos">+25 / +50</td>
-          <td><span class="pill pill-mod">+60–100%</span></td>
-          <td><span class="pill pill-mod">Moderat</span></td>
-          <td style="font-size:11px; text-align:left;">AEMET. Over normalt, men ingen flomhendelse.</td>
-        </tr>
-        <tr style="background:#fff5f5;">
-          <td><span class="region-name">Lisboa / Algarve</span><span class="region-country">PT</span></td>
-          <td class="mono" style="font-weight:700; color:#dc2626;">~200–400+</td><td class="mono">80–110</td>
-          <td class="anom-pos" style="color:#dc2626; font-weight:700;">+120 til +300</td>
-          <td><span class="pill pill-high" style="font-size:12px;">+150–300%</span></td>
-          <td><span class="pill pill-high">Høy</span></td>
-          <td style="font-size:11px; text-align:left; color:#dc2626;">IPMA. Leonardo: 150–250 mm/5 dager. Marta: 60 mm/24t sør.</td>
-        </tr>
-        <tr style="background:#fff5f5;">
-          <td><span class="region-name">Nord — Rabat/Loukkos</span><span class="region-country">MA</span></td>
-          <td class="mono" style="font-weight:700; color:#dc2626;">~400–600+</td><td class="mono">55–80</td>
-          <td class="anom-pos" style="color:#dc2626; font-weight:700;">+350 til +520</td>
-          <td><span class="pill pill-high" style="font-size:12px;">+450–750%</span></td>
-          <td><span class="pill pill-high">Høy</span></td>
-          <td style="font-size:11px; text-align:left; color:#dc2626;">DMN/IFRC. Tangier: 1 500 mm sep–feb (3–4× årssnitt).</td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Sør — Agadir</span><span class="region-country">MA</span></td>
-          <td class="mono">~15–30</td><td class="mono">20–35</td><td class="anom-neu">~0</td>
-          <td><span class="pill pill-low">~0%</span></td>
-          <td><span class="pill pill-low">Høy</span></td>
-          <td style="font-size:11px; text-align:left;">DMN-estimat. Uberørt. Stabilt og tørt.</td>
-        </tr>
+<!-- DATA:PRECIP_ROWS_START -->
+        <tr><td><span class="region-name">Po-dalen (nord)</span><span class="region-country">IT</span></td><td class="mono">~30–55</td><td class="mono">40–60</td><td class="anom-neu">~0</td><td><span class="pill pill-low">~–10%</span></td><td><span class="pill pill-low">Moderat</span></td><td style="font-size:11px;text-align:left;">ECMWF-estimat. Normalt vintersignal.</td></tr>
+        <tr><td><span class="region-name">Sentral Italia (Roma)</span><span class="region-country">IT</span></td><td class="mono">~30–50</td><td class="mono">70–90</td><td class="anom-neg">–30/–40</td><td><span class="pill pill-cool">~–40%</span></td><td><span class="pill pill-low">Moderat</span></td><td style="font-size:11px;text-align:left;">Tørrere enn normalt. ECMWF-estimat.</td></tr>
+        <tr><td><span class="region-name">Napoli / Amalfi</span><span class="region-country">IT</span></td><td class="mono">~80–120</td><td class="mono">90–120</td><td class="anom-neu">~0</td><td><span class="pill pill-low">~0%</span></td><td><span class="pill pill-low">Moderat</span></td><td style="font-size:11px;text-align:left;">Nær normal. ECMWF-estimat.</td></tr>
+        <tr><td><span class="region-name">Murcia</span><span class="region-country">ES</span></td><td class="mono">~20–40</td><td class="mono">25–35</td><td class="anom-pos">~+10</td><td><span class="pill pill-low">~+15%</span></td><td><span class="pill pill-mod">Moderat</span></td><td style="font-size:11px;text-align:left;">AEMET klimanormal.</td></tr>
+        <tr><td><span class="region-name">Almería</span><span class="region-country">ES</span></td><td class="mono">~15–30</td><td class="mono">20–30</td><td class="anom-neu">~0</td><td><span class="pill pill-low">~0%</span></td><td><span class="pill pill-mod">Moderat</span></td><td style="font-size:11px;text-align:left;">AEMET. Skjermet av fjell.</td></tr>
+        <tr style="background:#fff5f5;"><td><span class="region-name">Huelva</span><span class="region-country">ES</span></td><td class="mono" style="font-weight:700;color:#dc2626;">~350–600+</td><td class="mono">75–100</td><td class="anom-pos" style="color:#dc2626;font-weight:700;">+280 til +500</td><td><span class="pill pill-high">+350–550%</span></td><td><span class="pill pill-high">Høy</span></td><td style="font-size:11px;text-align:left;color:#dc2626;">AEMET/IFAPA 92 stasjoner. Grazalema &gt;500 mm/24t.</td></tr>
+        <tr style="background:#fff5f5;"><td><span class="region-name">Sevilla</span><span class="region-country">ES</span></td><td class="mono" style="font-weight:700;color:#dc2626;">~250–500</td><td class="mono">65–90</td><td class="anom-pos" style="color:#dc2626;font-weight:700;">+200 til +400</td><td><span class="pill pill-high">+300–450%</span></td><td><span class="pill pill-high">Høy</span></td><td style="font-size:11px;text-align:left;color:#dc2626;">AEMET/IFAPA. 70–80% over klimanorm for sesongen.</td></tr>
+        <tr><td><span class="region-name">Madrid (ref.)</span><span class="region-country">ES</span></td><td class="mono">~60–90</td><td class="mono">35–45</td><td class="anom-pos">+25/+50</td><td><span class="pill pill-mod">+60–100%</span></td><td><span class="pill pill-mod">Moderat</span></td><td style="font-size:11px;text-align:left;">AEMET. Over normalt, men ingen flomhendelse.</td></tr>
+        <tr style="background:#fff5f5;"><td><span class="region-name">Lisboa / Algarve</span><span class="region-country">PT</span></td><td class="mono" style="font-weight:700;color:#dc2626;">~200–400+</td><td class="mono">80–110</td><td class="anom-pos" style="color:#dc2626;font-weight:700;">+120 til +300</td><td><span class="pill pill-high">+150–300%</span></td><td><span class="pill pill-high">Høy</span></td><td style="font-size:11px;text-align:left;color:#dc2626;">IPMA. Leonardo: 150–250 mm/5 dager. Marta: 60 mm/24t.</td></tr>
+        <tr style="background:#fff5f5;"><td><span class="region-name">Nord — Rabat/Loukkos</span><span class="region-country">MA</span></td><td class="mono" style="font-weight:700;color:#dc2626;">~400–600+</td><td class="mono">55–80</td><td class="anom-pos" style="color:#dc2626;font-weight:700;">+350 til +520</td><td><span class="pill pill-high">+450–750%</span></td><td><span class="pill pill-high">Høy</span></td><td style="font-size:11px;text-align:left;color:#dc2626;">DMN/IFRC. Tangier: 1 500 mm sep–feb (3–4× årssnitt).</td></tr>
+        <tr><td><span class="region-name">Sør — Agadir</span><span class="region-country">MA</span></td><td class="mono">~15–30</td><td class="mono">20–35</td><td class="anom-neu">~0</td><td><span class="pill pill-low">~0%</span></td><td><span class="pill pill-low">Høy</span></td><td style="font-size:11px;text-align:left;">DMN-estimat. Uberørt. Stabilt og tørt.</td></tr>
+<!-- DATA:PRECIP_ROWS_END -->
       </tbody>
     </table>
   </div>
-
   <div class="alert-box warning mt-2">
     <strong>Historisk perspektiv</strong>
-    Nedbørsnivåene i Andalusia, Portugal og Nord-Marokko er uten parallell i moderne observasjonshistorikk for disse regionene.
-    Tangier registrerte 1 500 mm nedbør fra september til februar — tilsvarende 3–4× et normalt årsgjennomsnitt.
+    Nedbørsnivåene i Andalusia, Portugal og Nord-Marokko er uten parallell i moderne observasjonshistorikk.
     ESA Copernicus aktiverte sin Emergency Management Service for Spania og Portugal 3. februar 2026.
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!-- TAB: TRENDLINJE                                                        -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- ═══ TAB: TRENDLINJE ══════════════════════════════════════════════════════ -->
 <section class="tab-panel" id="tab-trend">
   <div class="section-header">
     <h2>Trendlinje — Siste 4 uker</h2>
-    <span class="section-label">Rapport nr. 7/2026 — Baseline</span>
+    <span class="section-label">Rapport nr. 1/2026 — Baseline</span>
   </div>
-
   <div class="alert-box info mb-2">
     <strong>Rapport nr. 1 — Baseline etablert</strong>
-    Dette er første uke i trendserien. Trendretning er estimert basert på sesongutvikling jan.–feb. 2026.
-    Fra uke 9 vil tabellen vise faktisk uke-over-uke sammenligning.
+    Dette er første uke i trendserien. Fra uke 9 vil tabellen vise faktisk uke-over-uke sammenligning.
   </div>
-
+  <div class="table-explainer">
+    <strong>📈 Hva viser denne tabellen?</strong> Retning og utvikling i temperatur og nedbør over siste uker, samt ensemble-modellens konsensus.
+    <ul>
+      <li><strong>↑ Stigende:</strong> Temperaturen øker eller nedbøren tiltar</li>
+      <li><strong>↓ Fallende:</strong> Temperaturen synker eller nedbøren avtar</li>
+      <li><strong>→ Stabil:</strong> Lite endring fra uke til uke</li>
+      <li><strong>Modell-konsensus:</strong> Grad av enighet mellom ECMWF-ensemblene. Høy = pålitelig, Lav = stor usikkerhet</li>
+    </ul>
+  </div>
+  <p class="scroll-hint">← Scroll horisontalt →</p>
   <div class="table-wrap">
     <table>
       <thead>
-        <tr>
-          <th>Region</th>
-          <th>Temp-trend (4 uker)</th>
-          <th>Nedbørs-trend</th>
-          <th>Modell-konsensus</th>
-          <th>Avvik fra normal</th>
-        </tr>
+        <tr><th>Region</th><th>Temp-trend</th><th>Nedbørs-trend</th><th>Modell-konsensus</th><th>Avvik fra normal</th></tr>
       </thead>
       <tbody>
-        <tr>
-          <td><span class="region-name">Po-dalen</span><span class="region-country">IT</span></td>
-          <td><span class="trend-flat">→ Stabil</span></td>
-          <td><span class="trend-flat">→ Nær normal</span></td>
-          <td>Stabil</td><td class="anom-neu">Nær normal</td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Sentral Italia</span><span class="region-country">IT</span></td>
-          <td><span class="trend-flat">→ Stabil</span></td>
-          <td><span class="trend-down">↓ Tørrere</span></td>
-          <td>Stabil</td><td class="anom-neg">Tørrere enn norm</td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Napoli / Amalfi</span><span class="region-country">IT</span></td>
-          <td><span class="trend-up">↑ Svakt stigende</span></td>
-          <td><span class="trend-flat">→ Nær normal</span></td>
-          <td>Moderat konsensus</td><td class="anom-pos">Nær normal / litt over</td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Murcia</span><span class="region-country">ES</span></td>
-          <td><span class="trend-flat">→ Stabil</span></td>
-          <td><span class="trend-flat">→ Nær normal</span></td>
-          <td>Stabil</td><td class="anom-neu">Nær normal</td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Almería</span><span class="region-country">ES</span></td>
-          <td><span class="trend-flat">→ Stabil</span></td>
-          <td><span class="trend-flat">→ Nær normal</span></td>
-          <td>Stabil</td><td class="anom-neu">Nær normal</td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Huelva</span><span class="region-country">ES</span></td>
-          <td><span class="trend-down">↓ Kjølig</span></td>
-          <td><span class="trend-up" style="color:#dc2626;">↑↑ Ekstremt vått</span></td>
-          <td>Høy konsensus (vått)</td>
-          <td style="color:#dc2626; font-weight:600;">Avvik –2 til –3°C / +350–550%</td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Sevilla</span><span class="region-country">ES</span></td>
-          <td><span class="trend-down">↓ Kjølig og vått</span></td>
-          <td><span class="trend-up" style="color:#dc2626;">↑↑ Ekstremt vått</span></td>
-          <td>Høy konsensus</td>
-          <td style="color:#dc2626; font-weight:600;">–2 til –3°C / +300–450%</td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Madrid (ref.)</span><span class="region-country">ES</span></td>
-          <td><span class="trend-down">↓ Kjølig</span></td>
-          <td><span class="trend-up">↑ Over normalt</span></td>
-          <td>Stabil, kjølig bias</td><td class="anom-neg">Negativt avvik vedvarer</td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Lisboa / Algarve</span><span class="region-country">PT</span></td>
-          <td><span class="trend-down">↓ Kjølig og vått</span></td>
-          <td><span class="trend-up" style="color:#dc2626;">↑↑ Ekstremt vått</span></td>
-          <td>Høy konsensus</td>
-          <td style="color:#dc2626; font-weight:600;">Negativt temp. / +150–300%</td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Nord — Rabat/Gharb</span><span class="region-country">MA</span></td>
-          <td><span class="trend-down">↓ Kjølig</span></td>
-          <td><span class="trend-up" style="color:#dc2626;">↑↑ Historisk vått</span></td>
-          <td>Høy konsensus</td>
-          <td style="color:#dc2626; font-weight:600;">Historisk nedbørsoverskudd</td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Sør — Agadir</span><span class="region-country">MA</span></td>
-          <td><span class="trend-flat">→ Stabil</span></td>
-          <td><span class="trend-flat">→ Nær normal</span></td>
-          <td>Stabil</td><td class="anom-neu">Nær normal</td>
-        </tr>
+<!-- DATA:TREND_ROWS_START -->
+        <tr><td><span class="region-name">Po-dalen</span><span class="region-country">IT</span></td><td><span class="trend-flat">→ Stabil</span></td><td><span class="trend-flat">→ Nær normal</span></td><td>Stabil</td><td class="anom-neu">Nær normal</td></tr>
+        <tr><td><span class="region-name">Sentral Italia</span><span class="region-country">IT</span></td><td><span class="trend-flat">→ Stabil</span></td><td><span class="trend-down">↓ Tørrere</span></td><td>Stabil</td><td class="anom-neg">Tørrere enn norm</td></tr>
+        <tr><td><span class="region-name">Napoli / Amalfi</span><span class="region-country">IT</span></td><td><span class="trend-up">↑ Svakt stigende</span></td><td><span class="trend-flat">→ Nær normal</span></td><td>Moderat konsensus</td><td class="anom-pos">Nær normal / litt over</td></tr>
+        <tr><td><span class="region-name">Murcia</span><span class="region-country">ES</span></td><td><span class="trend-flat">→ Stabil</span></td><td><span class="trend-flat">→ Nær normal</span></td><td>Stabil</td><td class="anom-neu">Nær normal</td></tr>
+        <tr><td><span class="region-name">Almería</span><span class="region-country">ES</span></td><td><span class="trend-flat">→ Stabil</span></td><td><span class="trend-flat">→ Nær normal</span></td><td>Stabil</td><td class="anom-neu">Nær normal</td></tr>
+        <tr><td><span class="region-name">Huelva</span><span class="region-country">ES</span></td><td><span class="trend-down">↓ Kjølig</span></td><td><span class="trend-up" style="color:#dc2626;">↑↑ Ekstremt vått</span></td><td>Høy konsensus (vått)</td><td style="color:#dc2626;font-weight:600;">–2/–3°C / +350–550%</td></tr>
+        <tr><td><span class="region-name">Sevilla</span><span class="region-country">ES</span></td><td><span class="trend-down">↓ Kjølig og vått</span></td><td><span class="trend-up" style="color:#dc2626;">↑↑ Ekstremt vått</span></td><td>Høy konsensus</td><td style="color:#dc2626;font-weight:600;">–2/–3°C / +300–450%</td></tr>
+        <tr><td><span class="region-name">Madrid (ref.)</span><span class="region-country">ES</span></td><td><span class="trend-down">↓ Kjølig</span></td><td><span class="trend-up">↑ Over normalt</span></td><td>Stabil, kjølig bias</td><td class="anom-neg">Negativt avvik vedvarer</td></tr>
+        <tr><td><span class="region-name">Lisboa / Algarve</span><span class="region-country">PT</span></td><td><span class="trend-down">↓ Kjølig og vått</span></td><td><span class="trend-up" style="color:#dc2626;">↑↑ Ekstremt vått</span></td><td>Høy konsensus</td><td style="color:#dc2626;font-weight:600;">Negativt temp. / +150–300%</td></tr>
+        <tr><td><span class="region-name">Nord — Rabat/Gharb</span><span class="region-country">MA</span></td><td><span class="trend-down">↓ Kjølig</span></td><td><span class="trend-up" style="color:#dc2626;">↑↑ Historisk vått</span></td><td>Høy konsensus</td><td style="color:#dc2626;font-weight:600;">Historisk nedbørsoverskudd</td></tr>
+        <tr><td><span class="region-name">Sør — Agadir</span><span class="region-country">MA</span></td><td><span class="trend-flat">→ Stabil</span></td><td><span class="trend-flat">→ Nær normal</span></td><td>Stabil</td><td class="anom-neu">Nær normal</td></tr>
+<!-- DATA:TREND_ROWS_END -->
       </tbody>
     </table>
   </div>
-
   <div class="subsection">
     <div class="subsection-title">Modell-Confidence</div>
     <div class="confidence-grid">
-      <div class="confidence-card">
-        <div class="confidence-region">Huelva / Sevilla (ES)</div>
-        <span class="confidence-level conf-high">Høy</span>
-        <div class="confidence-note">AEMET, IFAPA, ESA Copernicus, AFP/Reuters — sterk konsensus. Stormhendelsene er veldokumenterte.</div>
-      </div>
-      <div class="confidence-card">
-        <div class="confidence-region">Lisboa / Algarve (PT)</div>
-        <span class="confidence-level conf-high">Høy</span>
-        <div class="confidence-note">IPMA, Met Office, ESA GPM, AFP. Vindkastrekorder og flomnivåer bekreftet via primærkilder.</div>
-      </div>
-      <div class="confidence-card">
-        <div class="confidence-region">Nord-Marokko (MA)</div>
-        <span class="confidence-level conf-high">Høy</span>
-        <div class="confidence-note">DMN, IFRC situasjonsrapport 12. feb., Morocco World News. Satellittdata bekrefter nedbørsmengder.</div>
-      </div>
-      <div class="confidence-card">
-        <div class="confidence-region">Italia — alle regioner</div>
-        <span class="confidence-level conf-high">Høy</span>
-        <div class="confidence-note">Stabilt signal. Lav ensemble-spredning. Godt underbygget av klimanormaler.</div>
-      </div>
-      <div class="confidence-card">
-        <div class="confidence-region">ES Murcia / Almería / MA Sør</div>
-        <span class="confidence-level conf-high">Høy</span>
-        <div class="confidence-note">Stabilt, forutsigbart vintersignal. Ingen modell-divergens.</div>
-      </div>
-      <div class="confidence-card">
-        <div class="confidence-region">Sub-seasonal (uke 11–14)</div>
-        <span class="confidence-level conf-low">Lav</span>
-        <div class="confidence-note">Ensemble-spredning øker markant utover uke 3. Kun sannsynlighetstrender — ikke hendelsesprognoser.</div>
-      </div>
+      <div class="confidence-card"><div class="confidence-region">Huelva / Sevilla (ES)</div><span class="confidence-level conf-high">Høy</span><div class="confidence-note">AEMET, IFAPA, ESA Copernicus, AFP/Reuters — sterk konsensus. Stormhendelsene er veldokumenterte.</div></div>
+      <div class="confidence-card"><div class="confidence-region">Lisboa / Algarve (PT)</div><span class="confidence-level conf-high">Høy</span><div class="confidence-note">IPMA, Met Office, ESA GPM, AFP. Vindkastrekorder og flomnivåer bekreftet via primærkilder.</div></div>
+      <div class="confidence-card"><div class="confidence-region">Nord-Marokko (MA)</div><span class="confidence-level conf-high">Høy</span><div class="confidence-note">DMN, IFRC situasjonsrapport 12. feb., Morocco World News. Satellittdata bekrefter nedbørsmengder.</div></div>
+      <div class="confidence-card"><div class="confidence-region">Italia — alle regioner</div><span class="confidence-level conf-high">Høy</span><div class="confidence-note">Stabilt signal. Lav ensemble-spredning. Godt underbygget av klimanormaler.</div></div>
+      <div class="confidence-card"><div class="confidence-region">ES Murcia / Almería / MA Sør</div><span class="confidence-level conf-high">Høy</span><div class="confidence-note">Stabilt, forutsigbart vintersignal. Ingen modell-divergens.</div></div>
+      <div class="confidence-card"><div class="confidence-region">Sub-seasonal (uke 11–14)</div><span class="confidence-level conf-low">Lav</span><div class="confidence-note">Ensemble-spredning øker markant utover uke 3. Kun sannsynlighetstrender — ikke hendelsesprognoser.</div></div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!-- TAB: PROGNOSE                                                          -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- ═══ TAB: PROGNOSE ════════════════════════════════════════════════════════ -->
 <section class="tab-panel" id="tab-prognose">
   <div class="section-header">
     <h2>Prognoser</h2>
     <span class="section-label">1–2 uker og 3–6 uker</span>
   </div>
-
+  <div class="table-explainer">
+    <strong>🔮 Hva viser prognosene?</strong>
+    <ul>
+      <li><strong>1–2 uker (høy presisjon):</strong> Basert på ECMWF IFS HRES 9km. Pålitelig retningsindikasjon for temperatur og nedbør.</li>
+      <li><strong>3–6 uker (lav presisjon):</strong> Basert på ECMWF EC46 sub-seasonal ensemble. Kun sannsynlighetstrender — ikke spesifikke hendelsesprognoser.</li>
+    </ul>
+  </div>
   <div class="forecast-grid">
     <div class="forecast-card">
-      <div class="forecast-card-header">
-        Prognose 1–2 uker (uke 9–10)
-        <span class="precision-tag">Høy presisjon</span>
-      </div>
+      <div class="forecast-card-header">Prognose 1–2 uker (uke 9–10)<span class="precision-tag">Høy presisjon</span></div>
       <div class="forecast-rows">
         <div class="forecast-row"><span class="forecast-region">🇮🇹 Italia (alle)</span><span class="forecast-signal trend-flat">→ Stabile temp. · Nær normalt nedbør</span></div>
         <div class="forecast-row"><span class="forecast-region">🇪🇸 Murcia</span><span class="forecast-signal trend-flat">→ Stabilt og tørt · Normal produksjon</span></div>
         <div class="forecast-row"><span class="forecast-region">🇪🇸 Almería</span><span class="forecast-signal trend-flat">→ Stabilt · Normal eksport</span></div>
-        <div class="forecast-row"><span class="forecast-region">🇪🇸 Huelva/Sevilla</span><span class="forecast-signal trend-up">↑ Gradvis uttørking · Rekoverering pågår · 2–4 uker til normalisering</span></div>
+        <div class="forecast-row"><span class="forecast-region">🇪🇸 Huelva/Sevilla</span><span class="forecast-signal trend-up">↑ Gradvis uttørking · 2–4 uker til normalisering</span></div>
         <div class="forecast-row"><span class="forecast-region">🇵🇹 Lisboa/Algarve</span><span class="forecast-signal trend-flat">→ Flomvann trekker seg · Begrenset aktivitet</span></div>
-        <div class="forecast-row"><span class="forecast-region">🇲🇦 Nord (Gharb)</span><span class="forecast-signal trend-up">↑ Gradvis bedring fra uke 9 · Logistikk returnerer langsomt</span></div>
+        <div class="forecast-row"><span class="forecast-region">🇲🇦 Nord (Gharb)</span><span class="forecast-signal trend-up">↑ Gradvis bedring fra uke 9</span></div>
         <div class="forecast-row"><span class="forecast-region">🇲🇦 Sør (Agadir)</span><span class="forecast-signal trend-flat">→ Stabile og gunstige forhold vedvarer</span></div>
       </div>
     </div>
-
     <div class="forecast-card">
-      <div class="forecast-card-header">
-        Prognose 3–6 uker (sub-seasonal)
-        <span class="precision-tag low">Lav presisjon</span>
-      </div>
+      <div class="forecast-card-header">Prognose 3–6 uker (sub-seasonal)<span class="precision-tag low">Lav presisjon</span></div>
       <div class="forecast-rows">
         <div class="forecast-row"><span class="forecast-region">Iberia temp.</span><span class="forecast-signal" style="color:#166534;">55–65% normalisering · Tidlig vår-signal mulig</span></div>
         <div class="forecast-row"><span class="forecast-region">Iberia/MA nedbør</span><span class="forecast-signal" style="color:#92400e;">55–60% tørrere periode etter ekstremt vått</span></div>
         <div class="forecast-row"><span class="forecast-region">Italia</span><span class="forecast-signal trend-flat">→ Nær normale forhold. Vår-tendens mot slutten av mars</span></div>
         <div class="forecast-row"><span class="forecast-region">MA Sør (Agadir)</span><span class="forecast-signal trend-up">↑ Stabilt tørt · 22–24°C mot slutten av mars</span></div>
       </div>
-      <div style="padding: 0.75rem 1rem; font-size:11px; color:var(--muted); border-top:1px solid var(--border);">
-        Kilde: ECMWF extended-range ensemble (15–46 dager). Kun sannsynlighetstrender — ikke hendelsesprognoser.
-        La Niña-bakgrunn favoriserer svakt kjøligere/våtere Vest-Europa enn normalt.
-      </div>
+      <div style="padding:0.75rem 1rem;font-size:11px;color:var(--muted);border-top:1px solid var(--border);">Kilde: ECMWF EC46 ensemble. La Niña-bakgrunn favoriserer svakt kjøligere/våtere Vest-Europa.</div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!-- TAB: SUPPLY CHAIN                                                      -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- ═══ TAB: SUPPLY CHAIN ════════════════════════════════════════════════════ -->
 <section class="tab-panel" id="tab-supplychain">
   <div class="section-header">
     <h2>Supply Chain Weather Risk</h2>
     <span class="section-label">Operativ risikovurdering</span>
   </div>
-
+  <div class="table-explainer">
+    <strong>🚚 Hva viser denne tabellen?</strong> Operativ risikovurdering for forsyningskjeden.
+    <ul>
+      <li><strong>Temp-påvirkning:</strong> Risiko for frostskade, varmeskade eller ugunstig veksttemperatur</li>
+      <li><strong>Nedbørsrisiko:</strong> Fare for flom, jordsmetning, oversvømmelse av produksjonsareal</li>
+      <li><strong>Transport:</strong> Risiko for stengning av veier, havner eller fergeforbindelser</li>
+      <li><strong>Produksjon:</strong> Samlet risiko for redusert volum, kvalitetsforringelse eller forsinkelse i høsting/pakking</li>
+      <li><strong>Samlet Høy:</strong> Tiltak bør iverksettes umiddelbart — vurder alternative leverandører</li>
+    </ul>
+  </div>
+  <p class="scroll-hint">← Scroll horisontalt →</p>
   <div class="table-wrap">
     <table>
       <thead>
-        <tr>
-          <th>Region</th>
-          <th>Temp-påvirkning</th>
-          <th>Nedbørsrisiko</th>
-          <th>Transport</th>
-          <th>Produksjon</th>
-          <th>Samlet</th>
-        </tr>
+        <tr><th>Region</th><th>Temp-påvirkning</th><th>Nedbørsrisiko</th><th>Transport</th><th>Produksjon</th><th>Samlet</th></tr>
       </thead>
       <tbody>
-        <tr>
-          <td><span class="region-name">Po-dalen</span><span class="region-country">IT</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td>
-          <td><span class="pill pill-low">Lav</span></td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Sentral Italia</span><span class="region-country">IT</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td>
-          <td><span class="pill pill-low">Lav</span></td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Napoli / Amalfi</span><span class="region-country">IT</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td>
-          <td><span class="pill pill-low">Lav</span></td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Murcia</span><span class="region-country">ES</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td>
-          <td><span class="pill pill-low">Lav</span></td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Almería</span><span class="region-country">ES</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td>
-          <td><span class="pill pill-low">Lav</span></td>
-        </tr>
-        <tr style="background:#fff5f5;">
-          <td><span class="region-name">Huelva</span><span class="region-country">ES</span></td>
-          <td><span class="pill pill-mod">Moderat</span></td><td><span class="pill pill-high">Høy</span></td>
-          <td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td>
-          <td><span class="pill pill-high">Høy</span></td>
-        </tr>
-        <tr style="background:#fff5f5;">
-          <td><span class="region-name">Sevilla</span><span class="region-country">ES</span></td>
-          <td><span class="pill pill-mod">Moderat</span></td><td><span class="pill pill-high">Høy</span></td>
-          <td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td>
-          <td><span class="pill pill-high">Høy</span></td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Madrid (ref.)</span><span class="region-country">ES</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td>
-          <td><span class="pill pill-low">Lav</span></td>
-        </tr>
-        <tr style="background:#fff5f5;">
-          <td><span class="region-name">Lisboa / Algarve</span><span class="region-country">PT</span></td>
-          <td><span class="pill pill-mod">Moderat</span></td><td><span class="pill pill-high">Høy</span></td>
-          <td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td>
-          <td><span class="pill pill-high">Høy</span></td>
-        </tr>
-        <tr style="background:#fff5f5;">
-          <td><span class="region-name">Nord — Rabat/Loukkos</span><span class="region-country">MA</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-high">Høy</span></td>
-          <td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td>
-          <td><span class="pill pill-high">Høy</span></td>
-        </tr>
-        <tr>
-          <td><span class="region-name">Sør — Agadir</span><span class="region-country">MA</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td>
-          <td><span class="pill pill-low">Lav</span></td>
-        </tr>
+<!-- DATA:SC_ROWS_START -->
+        <tr><td><span class="region-name">Po-dalen</span><span class="region-country">IT</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td></tr>
+        <tr><td><span class="region-name">Sentral Italia</span><span class="region-country">IT</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td></tr>
+        <tr><td><span class="region-name">Napoli / Amalfi</span><span class="region-country">IT</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td></tr>
+        <tr><td><span class="region-name">Murcia</span><span class="region-country">ES</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td></tr>
+        <tr><td><span class="region-name">Almería</span><span class="region-country">ES</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td></tr>
+        <tr style="background:#fff5f5;"><td><span class="region-name">Huelva</span><span class="region-country">ES</span></td><td><span class="pill pill-mod">Moderat</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td></tr>
+        <tr style="background:#fff5f5;"><td><span class="region-name">Sevilla</span><span class="region-country">ES</span></td><td><span class="pill pill-mod">Moderat</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td></tr>
+        <tr><td><span class="region-name">Madrid (ref.)</span><span class="region-country">ES</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td></tr>
+        <tr style="background:#fff5f5;"><td><span class="region-name">Lisboa / Algarve</span><span class="region-country">PT</span></td><td><span class="pill pill-mod">Moderat</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td></tr>
+        <tr style="background:#fff5f5;"><td><span class="region-name">Nord — Rabat/Loukkos</span><span class="region-country">MA</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td><td><span class="pill pill-high">Høy</span></td></tr>
+        <tr><td><span class="region-name">Sør — Agadir</span><span class="region-country">MA</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td><td><span class="pill pill-low">Lav</span></td></tr>
+<!-- DATA:SC_ROWS_END -->
       </tbody>
     </table>
   </div>
-
   <div class="info-grid mt-2">
-    <div class="info-card">
-      <span class="info-card-icon">🍓</span>
-      <div class="info-card-title">Huelva — Jordbær og bær</div>
-      <div class="info-card-body">COAG estimerer tap på min. 35 mill. euro. 40 000+ hektar oversvømt. Pakkerikapasitet sterkt redusert. Puerto de Algeciras (eksportport Andalusia) operativ, men tilfartsveier tidvis stengt. Rekoveringstid produksjon: 4–8 uker.</div>
-    </div>
-    <div class="info-card">
-      <span class="info-card-icon">🍅</span>
-      <div class="info-card-title">Murcia / Almería — Buffere</div>
-      <div class="info-card-body">Begge regionene er upåvirket av stormsystemene. Normal produksjon og eksport av tomat, paprika, agurk og sitrus. <strong>Viktig bufferregion</strong> — prioriter innkjøp herfra i perioden.</div>
-    </div>
-    <div class="info-card">
-      <span class="info-card-icon">🌊</span>
-      <div class="info-card-title">Lisboa/Algarve — Tejo-krisen</div>
-      <div class="info-card-body">Tejo-bassenget og Sado-regionen hardt rammet. Eksport via Setúbal/Lisboa havn delvis operativ. Rekoveringsplan for Leiria-distriktet løper til 2029. Jordbær og sitrus fra Alentejo sterkt påvirket.</div>
-    </div>
-    <div class="info-card">
-      <span class="info-card-icon">🏔️</span>
-      <div class="info-card-title">Marokko Nord — Loukkos-flomslettet</div>
-      <div class="info-card-body">30% av bærfarmer oversvømt (Phyto Loukkos). 100 000+ hektar rammet. Arbeidskraftmangel pga. evakueringer. Souss-Massa (Agadir) kan delvis kompensere, men produktspekter og volum er begrenset.</div>
-    </div>
-    <div class="info-card">
-      <span class="info-card-icon">🇮🇹</span>
-      <div class="info-card-title">Italia — Positiv buffer</div>
-      <div class="info-card-body">Alle fire italienske regioner har lav risiko og normal produksjon. Sitrus, artisjokk, brokkoli og salater er upåvirket. Italia bør vektes opp som forsyningskilde i inneværende krise-periode.</div>
-    </div>
-    <div class="info-card" style="border-left: 3px solid #dc2626; background: #fff5f5;">
-      <span class="info-card-icon">⚠️</span>
-      <div class="info-card-title">Strategisk varsel — Simultankrise</div>
-      <div class="info-card-body">Tre nøkkelregioner i krise samtidig = historisk ekstraordinær supply chain-situasjon. Forventet prispress på jordbær, tomat, agurk, paprika og courgette i 3–5 uker. Vurder beredskapslager og leverandørdiversifisering umiddelbart.</div>
-    </div>
+    <div class="info-card"><span class="info-card-icon">🍓</span><div class="info-card-title">Huelva — Jordbær og bær</div><div class="info-card-body">COAG estimerer tap på min. 35 mill. euro. 40 000+ hektar oversvømt. Pakkerikapasitet sterkt redusert. Rekoveringstid: 4–8 uker.</div></div>
+    <div class="info-card"><span class="info-card-icon">🍅</span><div class="info-card-title">Murcia / Almería — Buffere</div><div class="info-card-body">Begge regionene er upåvirket. Normal produksjon og eksport av tomat, paprika, agurk og sitrus. <strong>Prioriter innkjøp herfra i perioden.</strong></div></div>
+    <div class="info-card"><span class="info-card-icon">🌊</span><div class="info-card-title">Lisboa/Algarve — Tejo-krisen</div><div class="info-card-body">Tejo-bassenget og Sado-regionen hardt rammet. Eksport via Lisboa havn delvis operativ. Jordbær og sitrus sterkt påvirket.</div></div>
+    <div class="info-card"><span class="info-card-icon">🏔️</span><div class="info-card-title">Marokko Nord — Loukkos</div><div class="info-card-body">30% av bærfarmer oversvømt (Phyto Loukkos). 100 000+ hektar rammet. Arbeidskraftmangel pga. evakueringer.</div></div>
+    <div class="info-card"><span class="info-card-icon">🇮🇹</span><div class="info-card-title">Italia — Positiv buffer</div><div class="info-card-body">Alle fire italienske regioner har lav risiko og normal produksjon. Sitrus, artisjokk og brokkoli er upåvirket. Vekt opp Italia som forsyningskilde nå.</div></div>
+    <div class="info-card" style="border-left:3px solid #dc2626;background:#fff5f5;"><span class="info-card-icon">⚠️</span><div class="info-card-title">Strategisk varsel — Simultankrise</div><div class="info-card-body">Tre nøkkelregioner i krise samtidig. Forventet prispress på jordbær, tomat, agurk, paprika og courgette i 3–5 uker. Vurder beredskapslager umiddelbart.</div></div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!-- TAB: ENDRING                                                           -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<section class="tab-panel" id="tab-endring">
-  <div class="section-header">
-    <h2>Endring fra forrige rapport</h2>
-    <span class="section-label">Baseline — Rapport nr. 7/2026</span>
-  </div>
-
-  <div class="alert-box info mb-2">
-    <strong>Rapport nr. 1 — Ingen forrige rapport å sammenligne mot</strong>
-    Baseline er etablert. Fra rapport nr. 2 (uke 9/2026) vil denne fanen vise faktiske endringer i risikonivå og avvik fra uke til uke.
-  </div>
-
-  <div class="subsection-title">Baseline etablert — Uke 8/2026</div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Region</th>
-          <th>Baseline risiko</th>
-          <th>Temp-avvik (dag)</th>
-          <th>Nedbørsavvik</th>
-          <th>Modell-confidence</th>
-          <th>Merknad</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr class="change-row-same">
-          <td><span class="region-name">Po-dalen</span><span class="region-country">IT</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td class="anom-neu">~0°C</td><td class="anom-neu">~0%</td>
-          <td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px;">Normalt vintersignal</td>
-        </tr>
-        <tr class="change-row-same">
-          <td><span class="region-name">Sentral Italia</span><span class="region-country">IT</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td class="anom-neg">–1°C</td><td class="anom-neg">–40%</td>
-          <td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px;">Tørrere enn normalt</td>
-        </tr>
-        <tr class="change-row-same">
-          <td><span class="region-name">Napoli / Amalfi</span><span class="region-country">IT</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td class="anom-pos">+1°C</td><td class="anom-neu">~0%</td>
-          <td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px;">Nær normal</td>
-        </tr>
-        <tr class="change-row-same">
-          <td><span class="region-name">Murcia</span><span class="region-country">ES</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td class="anom-neu">0°C</td><td class="anom-pos">+15%</td>
-          <td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px;">Stabil bufferregion</td>
-        </tr>
-        <tr class="change-row-same">
-          <td><span class="region-name">Almería</span><span class="region-country">ES</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td class="anom-neg">–1°C</td><td class="anom-neu">~0%</td>
-          <td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px;">Stabil bufferregion</td>
-        </tr>
-        <tr class="change-row-up" style="background:#fff5f5;">
-          <td><span class="region-name">Huelva</span><span class="region-country">ES</span></td>
-          <td><span class="pill pill-high">Høy</span></td><td class="anom-neg" style="color:#dc2626;">–2 / –3°C</td>
-          <td class="anom-pos" style="color:#dc2626;">+350–550%</td>
-          <td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px; color:#dc2626;">KRITISK — stormserie jan.–feb.</td>
-        </tr>
-        <tr class="change-row-up" style="background:#fff5f5;">
-          <td><span class="region-name">Sevilla</span><span class="region-country">ES</span></td>
-          <td><span class="pill pill-high">Høy</span></td><td class="anom-neg" style="color:#dc2626;">–2 / –3°C</td>
-          <td class="anom-pos" style="color:#dc2626;">+300–450%</td>
-          <td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px; color:#dc2626;">KRITISK — stormserie jan.–feb.</td>
-        </tr>
-        <tr class="change-row-same">
-          <td><span class="region-name">Madrid (ref.)</span><span class="region-country">ES</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td class="anom-neg">–2°C</td><td class="anom-pos">+80%</td>
-          <td><span class="confidence-level conf-mod" style="font-size:10px;">Moderat</span></td><td style="font-size:11px;">Kjølig, under normal</td>
-        </tr>
-        <tr class="change-row-up" style="background:#fff5f5;">
-          <td><span class="region-name">Lisboa / Algarve</span><span class="region-country">PT</span></td>
-          <td><span class="pill pill-high">Høy</span></td><td class="anom-neg" style="color:#dc2626;">–1 / –2°C</td>
-          <td class="anom-pos" style="color:#dc2626;">+150–300%</td>
-          <td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px; color:#dc2626;">KRITISK — statlig unntakstilstand</td>
-        </tr>
-        <tr class="change-row-up" style="background:#fff5f5;">
-          <td><span class="region-name">Nord — Rabat/Loukkos</span><span class="region-country">MA</span></td>
-          <td><span class="pill pill-high">Høy</span></td><td class="anom-neg" style="color:#dc2626;">–1°C</td>
-          <td class="anom-pos" style="color:#dc2626;">+450–750%</td>
-          <td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px; color:#dc2626;">KRITISK — 2 mill. berørte</td>
-        </tr>
-        <tr class="change-row-same">
-          <td><span class="region-name">Sør — Agadir</span><span class="region-country">MA</span></td>
-          <td><span class="pill pill-low">Lav</span></td><td class="anom-neu">0°C</td><td class="anom-neu">~0%</td>
-          <td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px;">Upåvirket — stabil bufferregion</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="source-note mt-2">
-    <strong>Neste rapport:</strong> Uke 9/2026, ca. 27. februar 2026. Alle tabellstrukturer, regioner og rekkefølge er fastlåst for ukentlig sammenligning.
-    Endringer i risikonivå vil markeres med ▲ (forverring) og ▼ (bedring) i region-kolonnen fra neste uke.
-  </div>
-</section>
-
-<!-- ═══ TAB: HAVNER & FERGE ═══════════════════════════════════════════════ -->
+<!-- ═══ TAB: HAVNER ══════════════════════════════════════════════════════════ -->
 <section class="tab-panel" id="tab-havner">
   <div class="section-header">
     <h2>Havner &amp; Fergeforbindelser</h2>
     <span class="section-label">Nederland · Spania · Marokko-ferge</span>
   </div>
-
   <div class="alert-box warning">
     <strong>Operasjonell status — 21. februar 2026</strong>
-    Algeciras rapporterer forsinkelser knyttet til stormskader (tilfartsveier) og redusert fergefrekvens fra Tanger Med.
-    Rotterdam og Amsterdam opererer normalt. Oppdateres kl. 06:00 og 21:00.
+    Algeciras rapporterer forsinkelser og redusert fergefrekvens fra Tanger Med. Rotterdam og Amsterdam opererer normalt.
   </div>
-
   <div class="subsection-title">🇳🇱 Nederland — Mottakshavner</div>
   <div class="port-grid">
-    <div class="port-card">
-      <div class="port-card-header port-ok">
-        <div><div class="port-name">⚓ Port of Rotterdam</div><div class="port-country">NL · Europoort / Maasvlakte</div></div>
-        <span class="pill pill-low">Operativ</span>
-      </div>
-      <div class="port-body">
-        Europas største containerhavn opererer normalt. Frukt- og grønt-terminaler (Coolport, Holland Fruit) med normal kapasitet. Ingen værbetingede forstyrrelser. Veiforbindelsene til norske transportører via E19/E25 normalt.
-        <div class="port-meta"><span>📦 Reefer-kapasitet: Normal</span><span>🚚 Lastebiltrafikk: Normal</span><span>⛅ Lokal vær: 8°C, lettskyet</span></div>
-      </div>
-    </div>
-    <div class="port-card">
-      <div class="port-card-header port-ok">
-        <div><div class="port-name">⚓ Port of Amsterdam</div><div class="port-country">NL · Westpoort</div></div>
-        <span class="pill pill-low">Operativ</span>
-      </div>
-      <div class="port-body">
-        Normalt operativt. Relevant for spesialtransporter fra Spania og Marokko. Ingen værbetingede forstyrrelser.
-        <div class="port-meta"><span>📦 Reefer-kapasitet: Normal</span><span>🚚 Lastebiltrafikk: Normal</span><span>⛅ Lokal vær: 7°C, overskyet</span></div>
-      </div>
-    </div>
+    <div class="port-card"><div class="port-card-header port-ok"><div><div class="port-name">⚓ Port of Rotterdam</div><div class="port-country">NL · Europoort / Maasvlakte</div></div><span class="pill pill-low">Operativ</span></div><div class="port-body">Europas største containerhavn opererer normalt. Frukt- og grønt-terminaler med normal kapasitet.<div class="port-meta"><span>📦 Reefer: Normal</span><span>🚚 Lastebil: Normal</span><span>⛅ 8°C, lettskyet</span></div></div></div>
+    <div class="port-card"><div class="port-card-header port-ok"><div><div class="port-name">⚓ Port of Amsterdam</div><div class="port-country">NL · Westpoort</div></div><span class="pill pill-low">Operativ</span></div><div class="port-body">Normalt operativt. Relevant for spesialtransporter fra Spania og Marokko.<div class="port-meta"><span>📦 Reefer: Normal</span><span>🚚 Lastebil: Normal</span><span>⛅ 7°C, overskyet</span></div></div></div>
   </div>
-
   <div class="subsection-title mt-3">🇪🇸 Spania — Eksport- og transithavner</div>
   <div class="port-grid">
-    <div class="port-card">
-      <div class="port-card-header port-warning">
-        <div><div class="port-name">⚓ Puerto de Algeciras (APBA)</div><div class="port-country">ES · Cádiz — Primær eksportport Andalusia + Fergehavn Marokko</div></div>
-        <span class="pill pill-mod">Forsinkelser</span>
-      </div>
-      <div class="port-body">
-        <strong>Viktigste knutepunkt for Huelva- og Sevilla-eksport</strong> og ankerhavn for Tanger Med-fergene. Selve havnen er operativ, men tilfartsveiene A-7 og A-381 fra Huelva/Sevilla har hatt stormstengninger. Redusert fergetrafikk fra Marokko skaper kø og kapasitetspress.
-        <div class="port-meta"><span>⛴️ Ferger Tanger Med: ~60% kapasitet</span><span>🚚 Tilfartsveier: Sporadiske stengninger</span><span>📦 Reefer: Normal</span><span>⛅ 14°C, variabelt</span></div>
-      </div>
-    </div>
-
-    <div class="port-card">
-      <div class="port-card-header port-ok">
-        <div><div class="port-name">⚓ Puerto de Valencia</div><div class="port-country">ES · Valencia — Primær eksportport Levante/Murcia/Almería</div></div>
-        <span class="pill pill-low">Operativ</span>
-      </div>
-      <div class="port-body">
-        Normalt operativt. Primærport for Murcia og Almería som begge er upåvirket av stormene. Regulartrafikk mot Rotterdam opererer normalt.
-        <div class="port-meta"><span>📦 Reefer-kapasitet: God</span><span>🚚 Tilfartsveier: Normale</span><span>⛅ 16°C, sol</span></div>
-      </div>
-    </div>
-
-    <div class="port-card">
-      <div class="port-card-header port-ok">
-        <div><div class="port-name">⚓ Puerto de Cartagena</div><div class="port-country">ES · Cartagena, Murcia</div></div>
-        <span class="pill pill-low">Operativ</span>
-      </div>
-      <div class="port-body">
-        Normalt operativt. Sekundær eksportport for Murcia, særlig relevant for bulktransport av sitrus og grønnsaker. God kapasitetsutnyttelse.
-        <div class="port-meta"><span>📦 Reefer-kapasitet: Normal</span><span>🚚 Tilfartsveier: Normale</span><span>⛅ 17°C, sol</span></div>
-      </div>
-    </div>
-
-    <div class="port-card">
-      <div class="port-card-header port-ok">
-        <div><div class="port-name">⚓ Puerto de Barcelona</div><div class="port-country">ES · Barcelona — Hub Nord-Spania/Europa</div></div>
-        <span class="pill pill-low">Operativ</span>
-      </div>
-      <div class="port-body">
-        Normalt operativt. Viktig intermodalt knutepunkt for jernbane/lastebil fra Frankrike og videre nord. Ferbilinjer mot Italia og Frankrike fungerer normalt.
-        <div class="port-meta"><span>📦 Reefer-kapasitet: Normal</span><span>🚚 AP7 motorvei: Normale</span><span>⛅ 14°C, lettskyet</span></div>
-      </div>
-    </div>
+    <div class="port-card"><div class="port-card-header port-warning"><div><div class="port-name">⚓ Puerto de Algeciras</div><div class="port-country">ES · Cádiz — Primær eksportport Andalusia + Fergehavn Marokko</div></div><span class="pill pill-mod">Forsinkelser</span></div><div class="port-body"><strong>Viktigste knutepunkt for Huelva- og Sevilla-eksport.</strong> Tilfartsveiene A-7 og A-381 har hatt stormstengninger.<div class="port-meta"><span>⛴️ Tanger Med: ~60%</span><span>🚚 Tilfartsveier: Sporadiske stengninger</span><span>⛅ 14°C</span></div></div></div>
+    <div class="port-card"><div class="port-card-header port-ok"><div><div class="port-name">⚓ Puerto de Valencia</div><div class="port-country">ES · Primær eksportport Murcia/Almería</div></div><span class="pill pill-low">Operativ</span></div><div class="port-body">Normalt operativt. Primærport for Murcia og Almería, begge upåvirket av stormene.<div class="port-meta"><span>📦 Reefer: God</span><span>🚚 Tilfartsveier: Normale</span><span>⛅ 16°C, sol</span></div></div></div>
+    <div class="port-card"><div class="port-card-header port-ok"><div><div class="port-name">⚓ Puerto de Cartagena</div><div class="port-country">ES · Cartagena, Murcia</div></div><span class="pill pill-low">Operativ</span></div><div class="port-body">Normalt operativt. Sekundær eksportport for Murcia — bulktransport sitrus og grønnsaker.<div class="port-meta"><span>📦 Reefer: Normal</span><span>🚚 Tilfartsveier: Normale</span><span>⛅ 17°C, sol</span></div></div></div>
+    <div class="port-card"><div class="port-card-header port-ok"><div><div class="port-name">⚓ Puerto de Barcelona</div><div class="port-country">ES · Hub Nord-Spania/Europa</div></div><span class="pill pill-low">Operativ</span></div><div class="port-body">Normalt operativt. Viktig intermodalt knutepunkt mot Frankrike og nord.<div class="port-meta"><span>📦 Reefer: Normal</span><span>🚚 AP7: Normale</span><span>⛅ 14°C, lettskyet</span></div></div></div>
   </div>
-
   <div class="subsection-title mt-3">⛴️ Fergeovergangen Marokko — Spania</div>
-
   <div class="ferry-card">
     <div class="ferry-header ferry-warning">
-      <div>
-        <div class="ferry-title">⛴️ Tanger Med — Algeciras (Gibraltarstredet)</div>
-        <div class="ferry-route">~35 km · Transit ~1,5 time · Operatører: Baleària, FRS, Acciona</div>
-      </div>
+      <div><div class="ferry-title">⛴️ Tanger Med — Algeciras</div><div class="ferry-route">~35 km · ~1,5 time · Operatører: Baleària, FRS, Acciona</div></div>
       <span class="pill pill-mod">Redusert frekvens</span>
     </div>
     <div class="ferry-body">
       <div class="ferry-stats">
         <div class="ferry-stat"><div class="ferry-stat-label">Normal kapasitet</div><div class="ferry-stat-value">150–200 avg/dag</div></div>
         <div class="ferry-stat"><div class="ferry-stat-label">Nåværende status</div><div class="ferry-stat-value">~60% kapasitet</div></div>
-        <div class="ferry-stat"><div class="ferry-stat-label">Lastebilkø (MA-side)</div><div class="ferry-stat-value">3–8 timer</div></div>
+        <div class="ferry-stat"><div class="ferry-stat-label">Lastebilkø (MA)</div><div class="ferry-stat-value">3–8 timer</div></div>
         <div class="ferry-stat"><div class="ferry-stat-label">Alternativ rute</div><div class="ferry-stat-value">Nador → Almería</div></div>
       </div>
-      <div class="ferry-note">
-        <strong>Tanger Med Port Complex</strong> er Afrikas største havn og hoveddøren for marokkansk frukt- og grønteksport til Europa. Under stormsystemet Marta (7.–8. feb.) ble overfartsfrekvensen kraftig redusert pga. sterk vind i Gibraltarstredet og bølgehøyder opp mot 3–4 meter. Kjøretøykø for lastebiler estimert til 3–8 timer (mot normalt 30–90 min). Reefer-containere prioriteres.<br><br>
-        <strong>Alternativ rute:</strong> Nador → Almería (Baleària Lines, ~6 timer) er delvis operativ og benyttes som avlastning.<br><br>
-        <strong>Supply chain-implikasjon:</strong> Marokkanske jordbær, tomater og courgetter opplever 1–3 dagers ekstra forsinkelse. Sjekk operatørenes live-status (baleria.com, frs.es) før lasting.
-      </div>
+      <div class="ferry-note">Under stormsystemet Marta (7.–8. feb.) ble overfartsfrekvensen kraftig redusert pga. sterk vind og bølgehøyder 3–4 meter. Reefer-containere prioriteres. <strong>Marokkanske varer: 1–3 dagers ekstra forsinkelse.</strong></div>
     </div>
   </div>
-
   <div class="ferry-card">
     <div class="ferry-header ferry-ok">
-      <div>
-        <div class="ferry-title">⛴️ Agadir / Port d'Agadir — Sør-Marokko</div>
-        <div class="ferry-route">Landverts til Rotterdam via Algeciras · Ca. 3 500 km · 2–3 dager</div>
-      </div>
+      <div><div class="ferry-title">⛴️ Agadir / Port d'Agadir</div><div class="ferry-route">Landverts til Rotterdam via Algeciras · ~3 500 km · 2–3 dager</div></div>
       <span class="pill pill-low">Normal</span>
     </div>
     <div class="ferry-body">
       <div class="ferry-stats">
         <div class="ferry-stat"><div class="ferry-stat-label">Havnestatus</div><div class="ferry-stat-value">Fullt operativ</div></div>
         <div class="ferry-stat"><div class="ferry-stat-label">Transportrute</div><div class="ferry-stat-value">Lastebil → Algeciras</div></div>
-        <div class="ferry-stat"><div class="ferry-stat-label">Ekstra forsinkelse</div><div class="ferry-stat-value">+1–2 dager (Algeciras)</div></div>
+        <div class="ferry-stat"><div class="ferry-stat-label">Ekstra forsinkelse</div><div class="ferry-stat-value">+1–2 dager</div></div>
         <div class="ferry-stat"><div class="ferry-stat-label">Produksjon</div><div class="ferry-stat-value">Normal</div></div>
       </div>
-      <div class="ferry-note">
-        Agadir havn og produksjonsregionen Souss-Massa er upåvirket av stormene. Lastebiltransport fra Agadir til Tanger Med/Algeciras (ca. 600 km) er normal. Eneste forsinkelsesrisiko er køen ved Algeciras. <strong>Agadir er den sikreste alternative kilden til marokkanske produkter nå.</strong>
-      </div>
+      <div class="ferry-note">Agadir havn og produksjonsregionen Souss-Massa er upåvirket av stormene. <strong>Agadir er den sikreste alternative kilden til marokkanske produkter nå.</strong></div>
     </div>
   </div>
-
   <div class="source-note mt-2">
-    <strong>Kilder:</strong> Autoridad Portuaria de la Bahía de Algeciras (APBA), Port of Rotterdam Authority, Baleària Lines (baleria.com), FRS Iberia (frs.es), Tanger Med Port Authority (tangermed.ma). Vær: Open-Meteo. Stormstatus: AEMET, IPMA. Oppdateres kl. 06:00 og 21:00.
+    <strong>Kilder:</strong> APBA, Port of Rotterdam Authority, Baleària Lines, FRS Iberia, Tanger Med Port Authority. Vær: Open-Meteo. Oppdateres kl. 06:00 og 21:00.
   </div>
 </section>
 
@@ -1205,70 +587,124 @@
     <h2>Relevante nyheter</h2>
     <span class="section-label">Klima · Transport · Forsyningskjede</span>
   </div>
-
   <div class="source-note mb-2">
-    <strong>Kilder og metode:</strong> Nyheter hentes automatisk via RSS-feeds fra Reuters, AFP, BBC, Associated Press, ESA Copernicus EMSR og AEMET ved hvert oppdateringsintervall (06:00 og 21:00). Kun artikler med relevans for produksjonsregionene og transportkorridorene inkluderes. Alle lenker går til originalkilde.
+    <strong>Kilder og metode:</strong> Nyheter hentes automatisk via RSS-feeds fra Reuters, AFP, BBC, AP, ESA Copernicus EMSR og AEMET ved hvert oppdateringsintervall (06:00 og 21:00). Kun artikler med relevans for produksjonsregionene og transportkorridorene inkluderes.
   </div>
-
   <div class="news-grid">
 <!-- DATA:NEWS_START -->
     <div class="news-item news-high">
       <span class="news-source-tag tag-afp">AFP (via Google News)</span>
       <div class="news-content">
-        <div class="news-headline"><a href="https://news.google.com/rss/articles/CBMinwFBVV95cUxNRlMwSXBuWXVzTG5fbUtjLXJ3eXgxbTBnWnpNZWhwX2Z1anY0eTN5cGh1aWx1MF9VVURKVlRhVzVUS3dQOEIxU2ROTFRPNUp3TlN0aG9hWDhUQjBzWVA1R0VGYjU2ZkVQSThUX3h2dzFHUEQ1RlpDVjY5OFlqcDQzRHdlVG12VmNKS0lPallLblpKRzNPZkd2UTdWb3hqUHfSAZ8BQVVfeXFMTUtqZkZ4RnZXME16NjNXdTk5ZFJCTUtVZjVGYzBrenJYUWRWeGFSNVZZcmxnd1kyV0w0MDg3dkh3WldkNDdOa183SEo0S3piVnBFUE1Hc0ZGTmM5TWQ1XzdqSm5mbDlVNEJKUWdQeExjN3VINDRLems4cTQ0S2NWc21QUDJFd1lHNy00ajVOdktTVWo0WTBjYlA3cy1xQlJr?oc=5" target="_blank" rel="noopener noreferrer">Rains pummel Spain, Portugal, leaving 1 dead, 1 missing - dw.com</a></div>
-        <div class="news-summary">Rains pummel Spain, Portugal, leaving 1 dead, 1 missing&nbsp;&nbsp;dw.com</div>
+        <div class="news-headline"><a href="https://dw.com" target="_blank" rel="noopener noreferrer">Rains pummel Spain, Portugal, leaving 1 dead, 1 missing - dw.com</a></div>
+        <div class="news-summary">Rains pummel Spain, Portugal, leaving 1 dead, 1 missing</div>
         <div class="news-meta"><span>📅 5. February 2026</span></div>
       </div>
     </div>
 <!-- DATA:NEWS_END -->
   </div>
-
   <div class="source-note mt-2">
-    <strong>RSS-feeds overvåket:</strong> Reuters, AFP, BBC News, Associated Press, ESA Copernicus EMSR, AEMET Avisos, IPMA Avisos, IFRC Situation Reports, Morocco World News, Packaging Europe.<br>
-    <strong>Søkeord:</strong> storm, flood, Andalusia, Huelva, Sevilla, Portugal, Marokko, Algeciras, Tanger Med, Rotterdam, supply chain, fruit, vegetables, agricultural.
+    <strong>RSS-feeds overvåket:</strong> Reuters, AFP, BBC News, AP, ESA Copernicus EMSR, AEMET Avisos, IPMA Avisos, IFRC, Morocco World News.<br>
+    <strong>Søkeord:</strong> storm, flood, Andalusia, Huelva, Sevilla, Portugal, Marokko, Algeciras, Tanger Med, Rotterdam, supply chain, fruit, vegetables.
+  </div>
+</section>
+
+<!-- ═══ TAB: ENDRING ════════════════════════════════════════════════════════ -->
+<section class="tab-panel" id="tab-endring">
+  <div class="section-header">
+    <h2>Endring fra forrige rapport</h2>
+    <span class="section-label">Baseline — Rapport nr. 1/2026</span>
+  </div>
+  <div class="alert-box info mb-2">
+    <strong>Rapport nr. 1 — Ingen forrige rapport å sammenligne mot</strong>
+    Baseline etablert. Fra rapport nr. 2 (uke 9/2026) vises faktiske endringer med ▲ (forverring) og ▼ (bedring).
+  </div>
+  <p class="scroll-hint">← Scroll horisontalt →</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Region</th><th>Baseline risiko</th><th>Temp-avvik</th><th>Nedbørsavvik</th><th>Confidence</th><th style="text-align:left;">Merknad</th></tr>
+      </thead>
+      <tbody>
+        <tr class="change-row-same"><td><span class="region-name">Po-dalen</span><span class="region-country">IT</span></td><td><span class="pill pill-low">Lav</span></td><td class="anom-neu">~0°C</td><td class="anom-neu">~0%</td><td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px;text-align:left;">Normalt vintersignal</td></tr>
+        <tr class="change-row-same"><td><span class="region-name">Sentral Italia</span><span class="region-country">IT</span></td><td><span class="pill pill-low">Lav</span></td><td class="anom-neg">–1°C</td><td class="anom-neg">–40%</td><td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px;text-align:left;">Tørrere enn normalt</td></tr>
+        <tr class="change-row-same"><td><span class="region-name">Napoli / Amalfi</span><span class="region-country">IT</span></td><td><span class="pill pill-low">Lav</span></td><td class="anom-pos">+1°C</td><td class="anom-neu">~0%</td><td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px;text-align:left;">Nær normal</td></tr>
+        <tr class="change-row-same"><td><span class="region-name">Murcia</span><span class="region-country">ES</span></td><td><span class="pill pill-low">Lav</span></td><td class="anom-neu">0°C</td><td class="anom-pos">+15%</td><td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px;text-align:left;">Stabil bufferregion</td></tr>
+        <tr class="change-row-same"><td><span class="region-name">Almería</span><span class="region-country">ES</span></td><td><span class="pill pill-low">Lav</span></td><td class="anom-neg">–1°C</td><td class="anom-neu">~0%</td><td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px;text-align:left;">Stabil bufferregion</td></tr>
+        <tr class="change-row-up" style="background:#fff5f5;"><td><span class="region-name">Huelva</span><span class="region-country">ES</span></td><td><span class="pill pill-high">Høy</span></td><td class="anom-neg" style="color:#dc2626;">–2/–3°C</td><td class="anom-pos" style="color:#dc2626;">+350–550%</td><td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px;text-align:left;color:#dc2626;">KRITISK — stormserie jan.–feb.</td></tr>
+        <tr class="change-row-up" style="background:#fff5f5;"><td><span class="region-name">Sevilla</span><span class="region-country">ES</span></td><td><span class="pill pill-high">Høy</span></td><td class="anom-neg" style="color:#dc2626;">–2/–3°C</td><td class="anom-pos" style="color:#dc2626;">+300–450%</td><td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px;text-align:left;color:#dc2626;">KRITISK — stormserie jan.–feb.</td></tr>
+        <tr class="change-row-same"><td><span class="region-name">Madrid (ref.)</span><span class="region-country">ES</span></td><td><span class="pill pill-low">Lav</span></td><td class="anom-neg">–2°C</td><td class="anom-pos">+80%</td><td><span class="confidence-level conf-mod" style="font-size:10px;">Moderat</span></td><td style="font-size:11px;text-align:left;">Kjølig, under normal</td></tr>
+        <tr class="change-row-up" style="background:#fff5f5;"><td><span class="region-name">Lisboa / Algarve</span><span class="region-country">PT</span></td><td><span class="pill pill-high">Høy</span></td><td class="anom-neg" style="color:#dc2626;">–1/–2°C</td><td class="anom-pos" style="color:#dc2626;">+150–300%</td><td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px;text-align:left;color:#dc2626;">KRITISK — statlig unntakstilstand</td></tr>
+        <tr class="change-row-up" style="background:#fff5f5;"><td><span class="region-name">Nord — Rabat/Loukkos</span><span class="region-country">MA</span></td><td><span class="pill pill-high">Høy</span></td><td class="anom-neg" style="color:#dc2626;">–1°C</td><td class="anom-pos" style="color:#dc2626;">+450–750%</td><td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px;text-align:left;color:#dc2626;">KRITISK — 2 mill. berørte</td></tr>
+        <tr class="change-row-same"><td><span class="region-name">Sør — Agadir</span><span class="region-country">MA</span></td><td><span class="pill pill-low">Lav</span></td><td class="anom-neu">0°C</td><td class="anom-neu">~0%</td><td><span class="confidence-level conf-high" style="font-size:10px;">Høy</span></td><td style="font-size:11px;text-align:left;">Upåvirket — stabil bufferregion</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="source-note mt-2">
+    <strong>Neste rapport:</strong> Uke 9/2026, ca. 27. februar 2026.
   </div>
 </section>
 
 <!-- ═══ TAB: NORGE ═════════════════════════════════════════════════════════ -->
 <section class="tab-panel" id="tab-norway">
   <div class="section-header">
-    <h2>Norge</h2>
-    <span class="section-label">Automatisk innhold</span>
+    <h2>Norge 🇳🇴 — Produksjonsregioner</h2>
+    <span class="section-label">met.no · 10-dagersprognose</span>
   </div>
-
+  <div class="table-explainer">
+    <strong>🇳🇴 Hva viser Norge-modulen?</strong> Værstatus og klimaavvik for de 8 viktigste norske produksjonsregionene for frukt og grønnsaker.
+    <ul>
+      <li><strong>Temperaturavvik:</strong> Differanse fra klimanormal 1991–2020 for samme periode</li>
+      <li><strong>Frostrisiko:</strong> Kritisk for vekstsesong (mars–oktober). Nattefrost kan ødelegge blomster og unge planter</li>
+      <li><strong>Sesongstatus:</strong> Tidlig/normal/sen vår basert på akkumulert varme (graddag-metoden)</li>
+      <li><strong>Datakilde:</strong> met.no Locationforecast 2.0 — gratis, ingen API-nøkkel nødvendig</li>
+    </ul>
+  </div>
+<!-- DATA:NORWAY_SECTION_START -->
   <div class="alert-box info">
-    <strong>Norge-modul</strong>
-    Innhold settes inn automatisk ved oppdatering (06:00 / 21:00) mellom sentinelene nederst i filen.
+    <strong>Norge-modul — venter på første kjøring</strong>
+    Innhold genereres automatisk av workflow (kl. 06:00 / 21:00). Kjør GitHub Actions manuelt for å fylle inn data.
   </div>
+<!-- DATA:NORWAY_SECTION_END -->
 </section>
 
 <!-- ═══ TAB: ECMWF ═════════════════════════════════════════════════════════ -->
 <section class="tab-panel" id="tab-ecmwf">
   <div class="section-header">
-    <h2>ECMWF</h2>
-    <span class="section-label">Automatisk innhold</span>
+    <h2>ECMWF 🌐 — Ensemble-prognoser</h2>
+    <span class="section-label">IFS HRES · ENS · EC46 · SEAS5</span>
   </div>
-
+  <div class="table-explainer">
+    <strong>🌐 Hva viser ECMWF-modulen?</strong> Fire lag med prognoser fra European Centre for Medium-Range Weather Forecasts.
+    <ul>
+      <li><strong>IFS HRES (9 km):</strong> Høyoppløselig deterministisk prognose, 15 dager frem — mest pålitelig 1–7 dager</li>
+      <li><strong>ENS (51 member):</strong> Ensemble med P10/P50/P90-percentiler — viser usikkerhetsintervallet rundt prognosen</li>
+      <li><strong>EC46 (sub-seasonal):</strong> Ukevise trender 2–6 uker frem — lav presisjon, kun retningsindikasjon</li>
+      <li><strong>SEAS5 (sesong):</strong> Månedlige anomalitrender 1–6 måneder frem — kun klimatologisk signal</li>
+    </ul>
+    <em>Alle ECMWF-data via Open-Meteo (CC-BY 4.0). Gratis og uten API-nøkkel.</em>
+  </div>
+<!-- DATA:ECMWF_EUROPE_START -->
   <div class="alert-box info">
-    <strong>ECMWF-modul</strong>
-    Innhold settes inn automatisk ved oppdatering (06:00 / 21:00) mellom sentinelene nederst i filen.
+    <strong>ECMWF Europa — venter på første kjøring</strong>
+    Innhold genereres automatisk av workflow (kl. 06:00 / 21:00). Kjør GitHub Actions manuelt for å fylle inn data.
   </div>
+<!-- DATA:ECMWF_EUROPE_END -->
+
+<!-- DATA:ECMWF_NORWAY_START -->
+<!-- DATA:ECMWF_NORWAY_END -->
 </section>
 
-</main><!-- end .main-content -->
+</main>
 
-<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
 <footer class="site-footer">
   KLIMARISIKORAPPORT — FRUKT &amp; GRØNT SUPPLY CHAIN · SØR-EUROPA OG NORD-AFRIKA<br>
   Oppdateres daglig kl. 06:00 og 21:00 CET · Havner: Rotterdam, Amsterdam, Algeciras, Valencia, Cartagena, Barcelona · Ferge: Tanger Med–Algeciras<br>
-  Rapport nr. 7/2026 · 21. februar 2026 · Open-Meteo · AEMET · IPMA · DMN · ESA Copernicus · Reuters/AFP RSS
+  Uke 8/2026 · 21. februar 2026 · Open-Meteo · AEMET · IPMA · DMN · ESA Copernicus · Reuters/AFP RSS · met.no · ECMWF
 </footer>
 
-<!-- ── TAB SCRIPT ─────────────────────────────────────────────────────────── -->
 <script>
   const tabs   = document.querySelectorAll('.nav-tab');
   const panels = document.querySelectorAll('.tab-panel');
-
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       tabs.forEach(t => t.classList.remove('active'));
@@ -1279,16 +715,5 @@
     });
   });
 </script>
-
-<!-- DATA:NORWAY_SECTION_START -->
-<!-- DATA:NORWAY_SECTION_END -->
-
-<!-- DATA:ECMWF_EUROPE_START -->
-<!-- DATA:ECMWF_EUROPE_END -->
-
-<!-- DATA:ECMWF_NORWAY_START -->
-<!-- DATA:ECMWF_NORWAY_END -->
-
 </body>
 </html>
-```
