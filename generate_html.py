@@ -100,7 +100,7 @@ def build_overview_rows(analyses: list[dict]) -> str:
                         "PT": "🇵🇹 Portugal", "MA": "🇲🇦 Marokko"}
         cc = rid.split("_")[0]
         flag = country_flag.get(cc, cc)
-        status = a.get("temp_status", "🟡")
+        status = a.get("temp_status", "🟢")
         pct = a.get("precip_anomaly_pct")
         pct_str = f"{pct:+.0f}%" if pct is not None else "N/A"
         pct_cls = "anom-pos" if pct and pct > 150 else "anom-neg" if pct and pct < -20 else "anom-neu"
@@ -133,7 +133,7 @@ def build_temp_rows(analyses: list[dict]) -> str:
         na = a.get("temp_night_actual")
         nn = a.get("temp_night_normal")
         nd = a.get("temp_night_anomaly")
-        status = a.get("temp_status", "🟡")
+        status = a.get("temp_status", "🟢")
 
         rows.append(f"""<tr>
           <td><span class="region-name">{rn.split("–")[-1].strip() if "–" in rn else rn}</span>
