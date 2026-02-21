@@ -14,10 +14,6 @@ Logikk:
 HTML-templaten bruker kommentarer for å markere dynamiske seksjoner:
   <!-- DATA:REGION_TABLE_START --> ... <!-- DATA:REGION_TABLE_END -->
   <!-- DATA:LAST_UPDATED --> etc.
-
-Dersom templaten ikke har disse markeringene (første gang),
-kjøres scriptet i standalone-modus og genererer en komplett index.html
-ved hjelp av report_builder_html.py.
 """
 
 import argparse
@@ -25,15 +21,21 @@ import logging
 import os
 import re
 import sys
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from data_fetcher import fetch_all_regions
-from analyzer     import analyze_all
-from narrative    import generate_all_narratives
-from news_fetcher import fetch_news, render_news_html
+from data_fetcher    import fetch_all_regions
+from analyzer        import analyze_all
+from narrative       import generate_all_narratives
+from news_fetcher    import fetch_news, render_news_html
+from norway_fetcher  import fetch_all_norway_regions
+from ecmwf_fetcher   import fetch_ecmwf_all_regions, EUROPE_REGIONS, NORWAY_REGIONS
+
+sys.path.insert(0, str(Path(__file__).parent))
+from generate_norway_html import inject_norway_into_html
+from generate_ecmwf_html  import inject_ecmwf_into_html
 
 logging.basicConfig(
     level=logging.INFO,
@@ -102,7 +104,6 @@ def build_overview_rows(analyses: list[dict]) -> str:
         pct = a.get("precip_anomaly_pct")
         pct_str = f"{pct:+.0f}%" if pct is not None else "N/A"
         pct_cls = "anom-pos" if pct and pct > 150 else "anom-neg" if pct and pct < -20 else "anom-neu"
-        # Critical highlight
         bg = ' style="background:#fff5f5;"' if a.get("risk_total") == "Høy" else ""
 
         rows.append(f"""<tr{bg}>
@@ -247,6 +248,13 @@ def update_html(html: str, analyses: list[dict],
     updated_str = f"Uke {week_num}, {year}"
     data_str    = f"{date.today().day}. {months_no[date.today().month-1]} {date.today().year}"
 
+    # ── Klokkeslett ──────────────────────────────────────────────────────────
+    from datetime import timezone, timedelta
+    cet = timezone(timedelta(hours=1))
+    now_cet = datetime.now(cet)
+    time_str = now_cet.strftime("%H:%M")
+    last_updated_full = f"Uke {week_num}, {year} &nbsp;·&nbsp; Oppdatert {data_str} kl. {time_str} CET"
+
     # ── Simple text replacements ──────────────────────────────────────────────
     html = re.sub(r"Uke \d+, \d{4}", updated_str, html)
     html = re.sub(r"Rapport nr\. \d+/\d{4}", f"Rapport nr. {week_num}/{year}", html)
@@ -281,6 +289,11 @@ def update_html(html: str, analyses: list[dict],
         "<!-- DATA:TREND_ROWS_START -->", "<!-- DATA:TREND_ROWS_END -->",
         build_trend_rows(analyses))
 
+    # ── Klokkeslett-sentinel ──────────────────────────────────────────────────
+    html = replace_section(html,
+        "<!-- DATA:LAST_UPDATED_START -->", "<!-- DATA:LAST_UPDATED_END -->",
+        last_updated_full)
+
     # ── KPI cards ─────────────────────────────────────────────────────────────
     high = sum(1 for a in analyses if a.get("risk_total") == "Høy")
     mod  = sum(1 for a in analyses if a.get("risk_total") == "Moderat")
@@ -294,8 +307,7 @@ def update_html(html: str, analyses: list[dict],
     html = repl_kpi(html, "MOD_COUNT",  str(mod))
     html = repl_kpi(html, "LOW_COUNT",  str(low))
 
-
-    # ── News section ──────────────────────────────────────────────────────────────
+    # ── News section ──────────────────────────────────────────────────────────
     articles = fetch_news(max_articles=12)
     news_html = render_news_html(articles)
     html = replace_section(html,
@@ -313,7 +325,7 @@ def main():
 
     logger.info(f"Generating report for week {week_start} – {week_end}")
 
-    # 1. Fetch
+    # 1. Fetch Europa-data
     fetched = fetch_all_regions(
         config_path="config/regions.yaml",
         use_cache=not args.no_cache,
@@ -322,7 +334,7 @@ def main():
     # 2. Analyze
     analyses = analyze_all(fetched, config_path="config/regions.yaml")
 
-    # 3. Narratives (for logging; full narrative injection is a future enhancement)
+    # 3. Narratives
     narratives = generate_all_narratives(analyses)
     logger.info(f"Narrative mode: {narratives['mode_used']}")
 
@@ -334,12 +346,32 @@ def main():
 
     html = html_path.read_text(encoding="utf-8")
 
-    # 5. Inject data
+    # 5. Inject Europa-data
     html = update_html(html, analyses, week_start, week_end)
 
-    # 6. Write back
+    # 6. Hent og injiser Norge-data (met.no)
+    logger.info("Henter norske værdata fra met.no...")
+    try:
+        norway_data = fetch_all_norway_regions()
+        html = inject_norway_into_html(html, norway_data)
+        logger.info(f"Norge-data injisert for {len(norway_data)} regioner.")
+    except Exception as e:
+        logger.error(f"Feil ved henting av Norge-data: {e}")
+
+    # 7. Hent og injiser ECMWF-data
+    logger.info("Henter ECMWF Europa-regioner...")
+    try:
+        europe_ecmwf = fetch_ecmwf_all_regions(EUROPE_REGIONS)
+        logger.info("Henter ECMWF Norge-regioner...")
+        norway_ecmwf = fetch_ecmwf_all_regions(NORWAY_REGIONS)
+        html = inject_ecmwf_into_html(html, europe_ecmwf, norway_ecmwf)
+        logger.info("ECMWF-data injisert.")
+    except Exception as e:
+        logger.error(f"Feil ved henting av ECMWF-data: {e}")
+
+    # 8. Write back
     html_path.write_text(html, encoding="utf-8")
-    logger.info(f"index.html updated successfully.")
+    logger.info("index.html updated successfully.")
 
     # Summary
     high_regions = [a["region_name"] for a in analyses if a.get("risk_total") == "Høy"]
