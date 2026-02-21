@@ -1,11 +1,13 @@
+```html
 <!DOCTYPE html>
 <html lang="no">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Klimarisikorapport — Frukt & Grønt Supply Chain</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Klimarisikorapport — Frukt &amp; Grønt Supply Chain</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+
 <style>
   :root {
     --navy:      #0f2044;
@@ -54,6 +56,7 @@
   .header-badges {
     display: flex;
     gap: 0.5rem;
+    flex-wrap: wrap;
   }
   .badge {
     font-size: 10px;
@@ -67,9 +70,7 @@
   }
   .badge.accent { background: var(--accent); border-color: var(--accent); color: white; }
 
-  .header-main {
-    padding: 1.5rem 0 1.25rem;
-  }
+  .header-main { padding: 1.5rem 0 1.25rem; }
   .header-main h1 {
     font-family: 'Fraunces', serif;
     font-size: 2rem;
@@ -78,10 +79,7 @@
     line-height: 1.2;
     margin-bottom: 0.5rem;
   }
-  .header-main h1 em {
-    font-style: italic;
-    color: #93c5fd;
-  }
+  .header-main h1 em { font-style: italic; color: #93c5fd; }
   .header-subtitle {
     font-size: 13px;
     color: rgba(255,255,255,0.6);
@@ -91,6 +89,7 @@
   .header-meta {
     display: flex;
     gap: 1.5rem;
+    flex-wrap: wrap;
     margin-top: 1rem;
     padding-top: 0.75rem;
     border-top: 1px solid rgba(255,255,255,0.08);
@@ -286,8 +285,6 @@
   .pill-normal { background: var(--yellow-bg);  color: var(--yellow-text); border: 1px solid var(--yellow-border); }
   .pill-cool   { background: var(--blue-bg);    color: var(--blue-text);   border: 1px solid var(--blue-border); }
 
-  .status-icon { font-size: 1rem; line-height: 1; }
-
   /* ── TREND ARROWS ────────────────────────────────────────────────────────── */
   .trend-up   { color: #f97316; font-weight: 700; }
   .trend-down { color: #3b82f6; font-weight: 700; }
@@ -331,50 +328,6 @@
     line-height: 1.55;
   }
 
-  /* ── COUNTRY SECTION ────────────────────────────────────────────────────── */
-  .country-block {
-    margin-bottom: 1.5rem;
-  }
-  .country-label {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 0.75rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .country-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-  .region-row {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 0.6rem;
-    align-items: flex-start;
-    font-size: 13px;
-    line-height: 1.5;
-    padding: 0.6rem 0.85rem;
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 5px;
-  }
-  .region-row-name {
-    font-weight: 600;
-    color: var(--navy);
-    min-width: 200px;
-    flex-shrink: 0;
-  }
-  .region-row-text { color: #374151; }
-  .region-row.critical { border-left: 3px solid #ef4444; }
-  .region-row.warning  { border-left: 3px solid #f97316; }
-  .region-row.normal   { border-left: 3px solid #22c55e; }
-
   /* ── CONFIDENCE METER ────────────────────────────────────────────────────── */
   .confidence-grid {
     display: grid;
@@ -404,7 +357,7 @@
   .conf-low  { background: #fee2e2; color: #991b1b; }
   .confidence-note { font-size: 11px; color: var(--muted); line-height: 1.45; }
 
-  /* ── TIMELINE ────────────────────────────────────────────────────────────── */
+  /* ── TIMELINE / FORECAST ─────────────────────────────────────────────────── */
   .forecast-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -504,6 +457,7 @@
   .port-country { font-size: 10px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; margin-top: 1px; }
   .port-body { padding: 0.75rem 1rem; font-size: 12.5px; color: #374151; line-height: 1.55; }
   .port-meta { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem; font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+
   /* FERRY */
   .ferry-card { background: white; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 1rem; }
   .ferry-header { padding: 0.85rem 1.1rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 0.5rem; }
@@ -517,6 +471,7 @@
   .ferry-stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
   .ferry-stat-value { font-size: 13px; font-weight: 600; color: var(--navy); font-family: 'IBM Plex Mono', monospace; }
   .ferry-note { font-size: 12.5px; color: #374151; line-height: 1.55; }
+
   /* NEWS */
   .news-grid { display: grid; gap: 0.75rem; margin-bottom: 1.5rem; }
   .news-item { background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.85rem 1.1rem; display: flex; gap: 1rem; align-items: flex-start; }
@@ -535,9 +490,9 @@
   .news-headline { font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 0.3rem; line-height: 1.4; }
   .news-summary { font-size: 12px; color: #374151; line-height: 1.5; }
   .news-meta { font-size: 10.5px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; margin-top: 0.35rem; display: flex; gap: 1rem; flex-wrap: wrap; }
-
 </style>
 </head>
+
 <body>
 
 <!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
@@ -550,6 +505,7 @@
       <span class="badge">Havner &amp; Transport</span>
     </div>
   </div>
+
   <div class="header-main">
     <h1>Klimarisikorapport — <em>Daglig</em></h1>
     <p class="header-subtitle">
@@ -557,16 +513,38 @@
       Havnestatus for Nederland og Spania. Fergeovergangen Tanger Med–Algeciras.
       Oppdateres kl. 06:00 og 21:00 daglig.
     </p>
+
     <div class="header-meta">
-      <span>📅 Sist oppdatert: Uke 7, 2026  |&nbsp; 🟡 Nær normal (±1,5°C) &nbsp;|&nbsp; 🔵 Kjøligere enn normal (&lt;–1,5°C)<br>
-    <strong>Datakvalitet:</strong> Temperaturintervaller er estimater. Stasjonsnøyaktige data tilgjengelig for Spania (AEMET) ved aktivering av API-nøkkel.
+      <span>
+        Sist oppdatert:
+        <!-- DATA:LAST_UPDATED_START -->Uke 8, 2026<!-- DATA:LAST_UPDATED_END -->
+      </span>
+      <span>
+        <strong>Datakvalitet:</strong> Temperaturintervaller er estimater. Stasjonsnøyaktige data tilgjengelig for Spania (AEMET) ved aktivering av API-nøkkel.
+      </span>
+    </div>
   </div>
-</section>
+</header>
+
+<!-- ── NAV TABS ───────────────────────────────────────────────────────────── -->
+<nav class="nav-tabs" aria-label="Rapportfaner">
+  <div class="nav-tab active" data-tab="nedbor">Nedbør</div>
+  <div class="nav-tab" data-tab="trend">Trendlinje</div>
+  <div class="nav-tab" data-tab="prognose">Prognoser</div>
+  <div class="nav-tab" data-tab="supplychain">Supply Chain</div>
+  <div class="nav-tab" data-tab="endring">Endring</div>
+  <div class="nav-tab" data-tab="havner">Havner &amp; Ferge</div>
+  <div class="nav-tab" data-tab="nyheter">Nyheter</div>
+  <div class="nav-tab" data-tab="norway">Norge 🇳🇴</div>
+  <div class="nav-tab" data-tab="ecmwf">ECMWF 🌐</div>
+</nav>
+
+<main class="main-content">
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 <!-- TAB: NEDBØR                                                            -->
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
-<section class="tab-panel" id="tab-nedbor">
+<section class="tab-panel active" id="tab-nedbor">
   <div class="section-header">
     <h2>Nedbørsmodul — Observert vs. Normal</h2>
     <span class="section-label">1. jan – 20. feb 2026</span>
@@ -671,6 +649,7 @@
       </tbody>
     </table>
   </div>
+
   <div class="alert-box warning mt-2">
     <strong>Historisk perspektiv</strong>
     Nedbørsnivåene i Andalusia, Portugal og Nord-Marokko er uten parallell i moderne observasjonshistorikk for disse regionene.
@@ -687,6 +666,7 @@
     <h2>Trendlinje — Siste 4 uker</h2>
     <span class="section-label">Rapport nr. 7/2026 — Baseline</span>
   </div>
+
   <div class="alert-box info mb-2">
     <strong>Rapport nr. 1 — Baseline etablert</strong>
     Dette er første uke i trendserien. Trendretning er estimert basert på sesongutvikling jan.–feb. 2026.
@@ -995,6 +975,7 @@
     <h2>Endring fra forrige rapport</h2>
     <span class="section-label">Baseline — Rapport nr. 7/2026</span>
   </div>
+
   <div class="alert-box info mb-2">
     <strong>Rapport nr. 1 — Ingen forrige rapport å sammenligne mot</strong>
     Baseline er etablert. Fra rapport nr. 2 (uke 9/2026) vil denne fanen vise faktiske endringer i risikonivå og avvik fra uke til uke.
@@ -1076,12 +1057,12 @@
       </tbody>
     </table>
   </div>
+
   <div class="source-note mt-2">
     <strong>Neste rapport:</strong> Uke 9/2026, ca. 27. februar 2026. Alle tabellstrukturer, regioner og rekkefølge er fastlåst for ukentlig sammenligning.
     Endringer i risikonivå vil markeres med ▲ (forverring) og ▼ (bedring) i region-kolonnen fra neste uke.
   </div>
 </section>
-
 
 <!-- ═══ TAB: HAVNER & FERGE ═══════════════════════════════════════════════ -->
 <section class="tab-panel" id="tab-havner">
@@ -1132,6 +1113,7 @@
         <div class="port-meta"><span>⛴️ Ferger Tanger Med: ~60% kapasitet</span><span>🚚 Tilfartsveier: Sporadiske stengninger</span><span>📦 Reefer: Normal</span><span>⛅ 14°C, variabelt</span></div>
       </div>
     </div>
+
     <div class="port-card">
       <div class="port-card-header port-ok">
         <div><div class="port-name">⚓ Puerto de Valencia</div><div class="port-country">ES · Valencia — Primær eksportport Levante/Murcia/Almería</div></div>
@@ -1142,6 +1124,7 @@
         <div class="port-meta"><span>📦 Reefer-kapasitet: God</span><span>🚚 Tilfartsveier: Normale</span><span>⛅ 16°C, sol</span></div>
       </div>
     </div>
+
     <div class="port-card">
       <div class="port-card-header port-ok">
         <div><div class="port-name">⚓ Puerto de Cartagena</div><div class="port-country">ES · Cartagena, Murcia</div></div>
@@ -1152,6 +1135,7 @@
         <div class="port-meta"><span>📦 Reefer-kapasitet: Normal</span><span>🚚 Tilfartsveier: Normale</span><span>⛅ 17°C, sol</span></div>
       </div>
     </div>
+
     <div class="port-card">
       <div class="port-card-header port-ok">
         <div><div class="port-name">⚓ Puerto de Barcelona</div><div class="port-country">ES · Barcelona — Hub Nord-Spania/Europa</div></div>
@@ -1236,192 +1220,38 @@
         <div class="news-meta"><span>📅 5. February 2026</span></div>
       </div>
     </div>
-    <div class="news-item news-high">
-      <span class="news-source-tag tag-other">Port of Rotterdam</span>
-      <div class="news-content">
-        <div class="news-headline"><a href="https://www.portofrotterdam.com/nl/nieuws-en-persberichten/nautische-jaarcijfers-2025-havenmeester-focust-op-weerbaarheid-en" target="_blank" rel="noopener noreferrer">Nautische jaarcijfers 2025: Havenmeester focust op weerbaarheid en snelheidsbeperkingen rondom de Erasmusbrug</a></div>
-        <div class="news-summary"> Nautical annual figures 2025: The Harbour Master focused on resilience and speed limits around the Erasmusbrug
-
-            
-
-
-  
-  
-    
-      
-        
-          
-                      
-            Safe port
-          
-          
- Nautical annual figures 2025: The Harbour Master focused on resilience and speed limits around the Erasmusbrug
-
-          
-
-
-          
-          
-                   …</div>
-        <div class="news-meta"><span>📅 3. February 2026</span></div>
-      </div>
-    </div>
-    <div class="news-item news-high">
-      <span class="news-source-tag tag-other">Port of Rotterdam</span>
-      <div class="news-content">
-        <div class="news-headline"><a href="https://www.portofrotterdam.com/nl/nieuws-en-persberichten/havenvisie-2050-officieel-gelanceerd" target="_blank" rel="noopener noreferrer">Havenvisie 2050 officieel gelanceerd</a></div>
-        <div class="news-summary">2050 Port Vision officially launched
-
-            
-
-
-  
-  
-    
-      
-        
-          
-          
-          
-2050 Port Vision officially launched
-
-          
-
-
-          
-          
-                      28 January 2026
-          
-                  
-
-        
-          How can we help you?
-          
-        
-
-        
-        
-
-
-  
-    Share
-    Share this on
-  
-
-  
-                  
-       …</div>
-        <div class="news-meta"><span>📅 28. January 2026</span></div>
-      </div>
-    </div>
-    <div class="news-item news-high">
-      <span class="news-source-tag tag-other">Port of Rotterdam</span>
-      <div class="news-content">
-        <div class="news-headline"><a href="https://www.portofrotterdam.com/nl/nieuws-en-persberichten/samen-naar-een-concurrerende-duurzame-en-weerbare-haven-2050" target="_blank" rel="noopener noreferrer">Samen naar een concurrerende, duurzame en weerbare haven in 2050</a></div>
-        <div class="news-summary">Together towards a competitive, sustainable, and resilient port in 2050
-
-            
-
-
-  
-  
-    
-      
-        
-          
-          
-          
-Together towards a competitive, sustainable, and resilient port in 2050
-
-          
-
-
-          
-          
-                      25 November 2025
-          
-                  
-
-        
-          How can we help you?
-          
-        
-
-        
-    …</div>
-        <div class="news-meta"><span>📅 19. December 2025</span></div>
-      </div>
-    </div>
-    <div class="news-item news-moderate">
-      <span class="news-source-tag tag-reuters">Google News — Morocco floods</span>
-      <div class="news-content">
-        <div class="news-headline"><a href="https://news.google.com/rss/articles/CBMiuwFBVV95cUxPLUtsZ05yOTRhUG9vLUxpRDRPZ0xlV2FPWWVUOHNraHlWNzlUMW1EWmc3MXhodmZDbVFoaWZhMU1QNjRyZ3Y2ODdLU25tQjg4MHJZYnJBM1VXcE0tbjRpMnRiTEdMVVBIbno1SlQwSzNyY0hseElGMTUyUFR2QUN1QktLdU9JRE1wck05R3owNkVGRkVxMmxvWXo0ek8tM2pXNm52aG4yUXQwakVsVnQ1NzdCR1VoVXR3Y1NV?oc=5" target="_blank" rel="noopener noreferrer">Tangier’s Authorities Launche Return of Evacuated Citizens After Floods in El Gharb - Barlaman Today</a></div>
-        <div class="news-summary">Tangier’s Authorities Launche Return of Evacuated Citizens After Floods in El Gharb&nbsp;&nbsp;Barlaman Today</div>
-        <div class="news-meta"><span>📅 15. February 2026</span></div>
-      </div>
-    </div>
-    <div class="news-item news-moderate">
-      <span class="news-source-tag tag-afp">AFP (via Google News)</span>
-      <div class="news-content">
-        <div class="news-headline"><a href="https://news.google.com/rss/articles/CBMirgFBVV95cUxOWXVLaUZDMExNV1FNVDhxQmxSTS1TTGVSNldfYV9yRzg1WE8tMXl0WDlINE9oWUlBLU5vWXlKYnExa0hjeWdFcVN4eURoQkJ5U0h1WnJ5YkpkZ1U1QTFsREtRdUl0Y3pFWUV2MjFxYVp0b2kzTGJrc1VYeGI4Q0wxRGs1X1pVSXE3RUNvVHRockJCeVk2OU9ab0M2YnRhbmdXcEFSMU5aZnhaSUhKYkE?oc=5" target="_blank" rel="noopener noreferrer">Floods wreak havoc in Morocco farmlands after severe drought - MSN</a></div>
-        <div class="news-summary">Floods wreak havoc in Morocco farmlands after severe drought&nbsp;&nbsp;MSN</div>
-        <div class="news-meta"><span>📅 13. February 2026</span></div>
-      </div>
-    </div>
-    <div class="news-item news-moderate">
-      <span class="news-source-tag tag-reuters">Google News — Morocco floods</span>
-      <div class="news-content">
-        <div class="news-headline"><a href="https://news.google.com/rss/articles/CBMiXkFVX3lxTE1LYUJUby0xQlRUOEpGeFBpZlo0Tk51aHBIaDNyNnVKN0JvZDJubHV2WXZRbVozdFhXV25TOFhzNlloZm1TSld0TVZlM0FkOTV0SzNPR19mbDY3Z3FCdlE?oc=5" target="_blank" rel="noopener noreferrer">Floods wreak havoc in Morocco’s farmlands after severe drought - Arab News</a></div>
-        <div class="news-summary">Floods wreak havoc in Morocco’s farmlands after severe drought&nbsp;&nbsp;Arab News</div>
-        <div class="news-meta"><span>📅 13. February 2026</span></div>
-      </div>
-    </div>
-    <div class="news-item news-moderate">
-      <span class="news-source-tag tag-afp">AFP (via Google News)</span>
-      <div class="news-content">
-        <div class="news-headline"><a href="https://news.google.com/rss/articles/CBMi3gJBVV95cUxNTV8ybl95bExhNEppY1pSZlNXWi1jVnZfcUxEcUJxQ1JIajNUcWd1RVo0WFhPZV9KRV9YM0ZkV0tlc01oU1R0YUFfdzVfa0YxemhENDJWdENidG4wMGxkcFdxcmtNc056SENFQjNPMnVrbWd0OVBtVEoxbjJFUVE0c1lCc0xtTG1EcUQ4MUIzbm83R3VaN0piaFM0a2hkeTVQX2hQb3YtSkxsbnZ2OUI0Rk00OU5DT3Z2Y2VFNEZXX2IxanVHWWhIRExBVEFLZ25KZURPRmZLdlZKTnJ2U0RJc1Ezc0NJZXFNelczcmJSTVlUNklnMVNWRE1vQW9Vc2Y2djBWNGNNeW9XSlo0VnFoRnplenFJOTBfdXlDWGpPWFFfOUtZMzZXM1lHZWplRXJjWjJYSVRZOGE5bTdwQkdyNUxJbWh5a3VXSVNQdW5HcTV6aHNmWkw3T29mN2xJUQ?oc=5" target="_blank" rel="noopener noreferrer">Floods wreak havoc in Morocco farmlands after severe drought - AOL.com</a></div>
-        <div class="news-summary">Floods wreak havoc in Morocco farmlands after severe drought&nbsp;&nbsp;AOL.com</div>
-        <div class="news-meta"><span>📅 13. February 2026</span></div>
-      </div>
-    </div>
-    <div class="news-item news-moderate">
-      <span class="news-source-tag tag-other">Google News — Supply Chain</span>
-      <div class="news-content">
-        <div class="news-headline"><a href="https://news.google.com/rss/articles/CBMixAFBVV95cUxNTWVPR3pvaGkxR1ZPSzVfZ3pqRGRkcmtSazdueWtmZHFmeWMwQVAxY3RCNkNiOHMweWFpdnNQSjZud0NhQ1prZ0lVQ0IwNFBtNUZWLVN2ZUVyQjFkMGQzdE5Qc2xXeWxZVUxxQ0ZodGdvRUc3emlQb3EteTljVVVtanhoSWdhWGZqTFNoWkJIVnRKRFlSNlhqUGptdm96RXc3LUR2Rmd0dTNjRDFwWTBtTHk0U0lWa0ZIX2I5NWo1NkJ2VFFH?oc=5" target="_blank" rel="noopener noreferrer">Spain: Andalusia on high alert as flooding risk escalates across agricultural areas - Hortidaily</a></div>
-        <div class="news-summary">Spain: Andalusia on high alert as flooding risk escalates across agricultural areas&nbsp;&nbsp;Hortidaily</div>
-        <div class="news-meta"><span>📅 9. February 2026</span></div>
-      </div>
-    </div>
-    <div class="news-item news-moderate">
-      <span class="news-source-tag tag-afp">AFP (via Google News)</span>
-      <div class="news-content">
-        <div class="news-headline"><a href="https://news.google.com/rss/articles/CBMiS0FVX3lxTFB1WVhPZHBpYk8wbElZdERMQTFsSWtLLUp6ZTZSTE8tRlBCbE5USG11UHBRV1J6RktZYjlyTXBHNnBzTUpWQ0tBZG1jUQ?oc=5" target="_blank" rel="noopener noreferrer">Spain, Portugal face fresh storms, torrential rain - Bangladesh Sangbad Sangstha (BSS)</a></div>
-        <div class="news-summary">Spain, Portugal face fresh storms, torrential rain&nbsp;&nbsp;Bangladesh Sangbad Sangstha (BSS)</div>
-        <div class="news-meta"><span>📅 8. February 2026</span></div>
-      </div>
-    </div>
-    <div class="news-item news-moderate">
-      <span class="news-source-tag tag-other">Google News — Supply Chain</span>
-      <div class="news-content">
-        <div class="news-headline"><a href="https://news.google.com/rss/articles/CBMiuAFBVV95cUxQWkN3N3EtOHVjRnRWYmdUenJtRE91SWZVb0tWVzFMXzBqNmI4WnVxUktGQy1CbHB3S09ib25OWEJpRk13QTdmMWRrVXRnMUx0Zi1YeGRYN3NuLXJ3SUxiVERVQ3VqdmFFZ1M4V0FNbFREY3VENmpIbFdXYWpWMGRObmhwcWEzSG5Gd0pWcy1DNWZVUXlkaWNGOGdJZ2hUVllud3JGUjNHYzY1eFlIOW1tcFF3LXpHRTMy?oc=5" target="_blank" rel="noopener noreferrer">Storm ‘Marta’ Shuts 168 Spanish Roads and Suspends Algeciras–Tangier Ferries - VisaHQ</a></div>
-        <div class="news-summary">Storm ‘Marta’ Shuts 168 Spanish Roads and Suspends Algeciras–Tangier Ferries&nbsp;&nbsp;VisaHQ</div>
-        <div class="news-meta"><span>📅 8. February 2026</span></div>
-      </div>
-    </div>
-    <div class="news-item news-moderate">
-      <span class="news-source-tag tag-other">Google News — Supply Chain</span>
-      <div class="news-content">
-        <div class="news-headline"><a href="https://news.google.com/rss/articles/CBMiywFBVV95cUxPTlplTmNibXFHWDhzbVhQTEJ1S2w1RldwckVDNGxlbXVkSFMzc0Jfb2tsVVE4ZGJiZDFwYnpIazM0VVQ4WkJDaDBweUNvLVNqalNFRFlPZEFISVhpTXFKRnVEVC1wX3M0QWJSNURXd29zUmxfdldFSTM0SWFkdURYc0UyTGFmb3dJcXlmVmRUQS1BMWZOdnJEd3h0NHZtRkZRSGU5ajJKNm1HcGpRSnZVTUR0RzBFejd2dGM0Q0lFYXo2dENGMEVKQU5PZw?oc=5" target="_blank" rel="noopener noreferrer">Renfe Halts Most Andalusia Trains and Cuts Galician Services for Third Day Amid Flooding - VisaHQ</a></div>
-        <div class="news-summary">Renfe Halts Most Andalusia Trains and Cuts Galician Services for Third Day Amid Flooding&nbsp;&nbsp;VisaHQ</div>
-        <div class="news-meta"><span>📅 8. February 2026</span></div>
-      </div>
-    </div>
 <!-- DATA:NEWS_END -->
   </div>
 
   <div class="source-note mt-2">
     <strong>RSS-feeds overvåket:</strong> Reuters, AFP, BBC News, Associated Press, ESA Copernicus EMSR, AEMET Avisos, IPMA Avisos, IFRC Situation Reports, Morocco World News, Packaging Europe.<br>
     <strong>Søkeord:</strong> storm, flood, Andalusia, Huelva, Sevilla, Portugal, Marokko, Algeciras, Tanger Med, Rotterdam, supply chain, fruit, vegetables, agricultural.
+  </div>
+</section>
+
+<!-- ═══ TAB: NORGE ═════════════════════════════════════════════════════════ -->
+<section class="tab-panel" id="tab-norway">
+  <div class="section-header">
+    <h2>Norge</h2>
+    <span class="section-label">Automatisk innhold</span>
+  </div>
+
+  <div class="alert-box info">
+    <strong>Norge-modul</strong>
+    Innhold settes inn automatisk ved oppdatering (06:00 / 21:00) mellom sentinelene nederst i filen.
+  </div>
+</section>
+
+<!-- ═══ TAB: ECMWF ═════════════════════════════════════════════════════════ -->
+<section class="tab-panel" id="tab-ecmwf">
+  <div class="section-header">
+    <h2>ECMWF</h2>
+    <span class="section-label">Automatisk innhold</span>
+  </div>
+
+  <div class="alert-box info">
+    <strong>ECMWF-modul</strong>
+    Innhold settes inn automatisk ved oppdatering (06:00 / 21:00) mellom sentinelene nederst i filen.
   </div>
 </section>
 
@@ -1434,10 +1264,10 @@ Together towards a competitive, sustainable, and resilient port in 2050
   Rapport nr. 7/2026 · 21. februar 2026 · Open-Meteo · AEMET · IPMA · DMN · ESA Copernicus · Reuters/AFP RSS
 </footer>
 
-<!-- ── TAB SCRIPT ──────────────────────────────────────────────────────────── -->
+<!-- ── TAB SCRIPT ─────────────────────────────────────────────────────────── -->
 <script>
-  const tabs    = document.querySelectorAll('.nav-tab');
-  const panels  = document.querySelectorAll('.tab-panel');
+  const tabs   = document.querySelectorAll('.nav-tab');
+  const panels = document.querySelectorAll('.tab-panel');
 
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -1450,5 +1280,15 @@ Together towards a competitive, sustainable, and resilient port in 2050
   });
 </script>
 
+<!-- DATA:NORWAY_SECTION_START -->
+<!-- DATA:NORWAY_SECTION_END -->
+
+<!-- DATA:ECMWF_EUROPE_START -->
+<!-- DATA:ECMWF_EUROPE_END -->
+
+<!-- DATA:ECMWF_NORWAY_START -->
+<!-- DATA:ECMWF_NORWAY_END -->
+
 </body>
 </html>
+```
