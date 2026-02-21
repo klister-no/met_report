@@ -1,0 +1,3 @@
+requests>=2.31.0
+pyyaml>=6.0.1
+# anthropic>=0.25.0   # Uncomment to enable Claude API narrative mode
