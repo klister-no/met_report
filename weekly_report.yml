@@ -1,0 +1,102 @@
+name: Daglig Klimarisikorapport
+
+on:
+  # To ganger daglig: kl. 06:00 CET og kl. 21:00 CET
+  schedule:
+    - cron: "0 5 * * *"   # 06:00 CET (vinterid) / 07:00 CEST (sommertid)
+    - cron: "0 20 * * *"  # 21:00 CET (vinterid) / 22:00 CEST (sommertid)
+
+  # Kjør manuelt fra GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      narrative_mode:
+        description: "Tekst-modus (rules = regelbasert, claude = AI)"
+        required: false
+        type: choice
+        options: [rules, claude]
+        default: rules
+      week_override:
+        description: "Overstyr dato (YYYY-MM-DD, valgfritt)"
+        required: false
+        type: string
+
+jobs:
+  update-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: write     # Trengs for å pushe index.html tilbake til repoet
+
+    steps:
+      # ── 1. Checkout ───────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Python ─────────────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # ── 3. Opprett arbeidsmapper ──────────────────────────────────────────
+      - name: Create working directories
+        run: mkdir -p data/cache data/history
+
+      # ── 4. Gjenopprett cache fra forrige kjøring ──────────────────────────
+      - name: Restore data cache
+        uses: actions/cache@v4
+        with:
+          path: data/
+          key: weather-data-${{ github.run_id }}
+          restore-keys: weather-data-
+
+      # ── 5. Generer oppdatert index.html ───────────────────────────────────
+      - name: Generate updated index.html
+        env:
+          AEMET_API_KEY:     ${{ secrets.AEMET_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NARRATIVE_MODE:    ${{ github.event.inputs.narrative_mode || 'rules' }}
+          WEEK_OVERRIDE:     ${{ github.event.inputs.week_override || '' }}
+        run: |
+          ARGS=""
+          if [ -n "$WEEK_OVERRIDE" ]; then
+            ARGS="--week $WEEK_OVERRIDE"
+          fi
+          python generate_html.py $ARGS
+
+      # ── 6. Lagre oppdatert cache ──────────────────────────────────────────
+      - name: Save data cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: data/
+          key: weather-data-${{ github.run_id }}
+
+      # ── 7. Commit og push index.html ──────────────────────────────────────
+      - name: Commit updated report
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          # Bare commit hvis det er faktiske endringer i filen
+          if git diff --staged --quiet; then
+            echo "No changes to index.html — skipping commit"
+          else
+            TIMESTAMP=$(TZ="Europe/Oslo" date +'%d.%m.%Y kl. %H:%M')
+            git commit -m "🌦️ Klimarisikorapport oppdatert $TIMESTAMP"
+            git push
+          fi
+
+      # ── 8. Last opp rapport som Actions-artifact (90 dagers arkiv) ────────
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: klimarisiko-${{ github.run_id }}
+          path: index.html
+          retention-days: 90
