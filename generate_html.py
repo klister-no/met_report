@@ -396,10 +396,12 @@ def build_trend_rows(analyses: list[dict]) -> str:
         avvik = f"{anom_d:+.1f}°C vs norm" if anom_d is not None else "Baseline"
         avc = anom_class(anom_d)
 
+        spark = build_sparkline(history)
         rows.append(f"""<tr>
           <td><span class="region-name">{rn.split("–")[-1].strip() if "–" in rn else rn}</span>
               <span class="region-country">{cc}</span></td>
           <td><span class="{trend_cls}">{trend_label}</span></td>
+          <td>{spark}</td>
           <td>{consensus}</td>
           <td class="{avc}">{avvik}</td>
         </tr>""")
@@ -498,6 +500,16 @@ def update_html(html: str, analyses: list[dict],
         "<!-- DATA:SC_CARDS_START -->", "<!-- DATA:SC_CARDS_END -->",
         build_sc_observation_cards(analyses))
 
+    # ── Confidence grid ──────────────────────────────────────────────────────
+    html = replace_section(html,
+        "<!-- DATA:CONFIDENCE_START -->", "<!-- DATA:CONFIDENCE_END -->",
+        build_confidence_grid(analyses))
+
+    # ── Port/ferry alert ──────────────────────────────────────────────────────
+    html = replace_section(html,
+        "<!-- DATA:PORT_ALERT_START -->", "<!-- DATA:PORT_ALERT_END -->",
+        build_port_alert(analyses))
+
     # ── News ──────────────────────────────────────────────────────────────────
     articles = fetch_news(max_articles=12)
     news_html = render_news_html(articles)
@@ -561,3 +573,115 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ── Confidence grid (dynamic) ─────────────────────────────────────────────────
+
+def build_confidence_grid(analyses: list[dict]) -> str:
+    """
+    Generate confidence cards based on data availability and risk levels.
+    Confidence = Høy if we have actual precip + temp data.
+    Sub-seasonal always = Lav (inherent model uncertainty).
+    """
+    cards = []
+    for a in analyses:
+        rn  = a["region_name"].split("–")[-1].strip() if "–" in a["region_name"] else a["region_name"]
+        rid = a["region_id"]
+        cc  = rid.split("_")[0]
+
+        has_precip = a.get("precip_actual_mm") is not None
+        has_temp   = a.get("temp_day_actual")  is not None
+        risk       = a.get("risk_total", "Lav")
+
+        if has_precip and has_temp:
+            level = "Høy"
+            cls   = "conf-high"
+            sources = {"IT": "ECMWF reanalyse + Open-Meteo",
+                       "ES": "AEMET + Open-Meteo",
+                       "PT": "IPMA + Open-Meteo",
+                       "MA": "DMN + Open-Meteo"}.get(cc, "Open-Meteo")
+            note = f"{sources}. Temperatur og nedbør bekreftet."
+        elif has_precip or has_temp:
+            level = "Moderat"
+            cls   = "conf-mod"
+            note  = "Kun én datakilde tilgjengelig. Delvis usikkerhet."
+        else:
+            level = "Lav"
+            cls   = "conf-low"
+            note  = "Manglende data. Basert på klimanormaler alene."
+
+        if risk == "Høy":
+            note += " Høyrisikoregion — økt overvåking."
+
+        cards.append(f'''    <div class="confidence-card">
+      <div class="confidence-region">{rn} ({cc})</div>
+      <span class="confidence-level {cls}">{level}</span>
+      <div class="confidence-note">{note}</div>
+    </div>''')
+
+    # Always add sub-seasonal card at end
+    cards.append('''    <div class="confidence-card">
+      <div class="confidence-region">Sub-seasonal (uke 3–6)</div>
+      <span class="confidence-level conf-low">Lav</span>
+      <div class="confidence-note">Ensemble-spredning øker markant utover uke 2–3. Kun sannsynlighetstrender — ikke hendelsesprognoser.</div>
+    </div>''')
+
+    return '<div class="confidence-grid">\n' + "\n".join(cards) + "\n</div>"
+
+
+# ── Sparkline bars for trend table ───────────────────────────────────────────
+
+def build_sparkline(history: list[dict]) -> str:
+    """Build a small bar chart from risk history (last 4 weeks)."""
+    if not history:
+        return '<div class="sparkbar-wrap"><span style="font-size:10px;color:var(--muted);">Baseline</span></div>'
+
+    bars = []
+    max_weeks = 4
+    padded = ([None] * (max_weeks - len(history))) + history[-max_weeks:]
+
+    for h in padded:
+        if h is None:
+            bars.append('<div class="sparkbar sparkbar-neu" style="height:6px;" title="Ingen data"></div>')
+        else:
+            risk = h.get("risk_total", "Lav")
+            pct  = h.get("precip_anomaly_pct", 0) or 0
+            height = min(28, max(4, int(abs(pct) / 20)))
+            cls = {"Høy": "sparkbar-high", "Moderat": "sparkbar-mod", "Lav": "sparkbar-low"}.get(risk, "sparkbar-neu")
+            week = h.get("week", "")
+            bars.append(f'<div class="sparkbar {cls}" style="height:{height}px;" title="Uke {week}: {risk}, nedbør {pct:+.0f}%"></div>')
+
+    return '<div class="sparkbar-wrap">' + "".join(bars) + "</div>"
+
+
+# ── Port / ferry alert box ────────────────────────────────────────────────────
+
+def build_port_alert(analyses: list[dict]) -> str:
+    """
+    Generate port/ferry status summary from transport risk data.
+    Regions with high transport risk → alert.
+    """
+    high_transport = [a for a in analyses if a.get("risk_transport") == "Høy"]
+    mod_transport  = [a for a in analyses if a.get("risk_transport") == "Moderat"]
+
+    if not high_transport and not mod_transport:
+        return '''  <div class="alert-box success">
+    <strong>✅ Alle transportkorridorer operative</strong>
+    Ingen værbetingede transportrisikoer registrert i dag. Normale forhold ved alle overvåkede havner og fergeoverganger.
+  </div>'''
+
+    affected = high_transport or mod_transport
+    names = ", ".join(
+        a["region_name"].split("–")[-1].strip() if "–" in a["region_name"]
+        else a["region_name"] for a in affected
+    )
+
+    severity = "warning" if not high_transport else "critical"
+    icon = "⚡" if not high_transport else "⚠️"
+    level = "Moderat" if not high_transport else "Høy"
+
+    return f'''  <div class="alert-box {severity}">
+    <strong>{icon} Transportrisiko {level} — regioner berørt: {names}</strong>
+    Transportrisiko basert på nedbørsavvik, veistengninger og havneforhold i produksjonsregionene.
+    Se tabellene under for detaljer per region.
+  </div>'''
