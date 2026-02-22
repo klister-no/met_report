@@ -2,18 +2,6 @@
 generate_html.py
 ----------------
 Henter værdata, analyserer og skriver oppdatert index.html.
-
-Logikk:
-  1. Hent data for alle 12 regioner (Open-Meteo + evt. AEMET)
-  2. Analyser avvik og risiko
-  3. Last inn index.html
-  4. Erstatt dynamiske seksjoner (markert med HTML-kommentarer)
-  5. Oppdater dato/uke-metadata i header
-  6. Skriv tilbake til index.html
-
-HTML-templaten bruker kommentarer for å markere dynamiske seksjoner:
-  <!-- DATA:REGION_TABLE_START --> ... <!-- DATA:REGION_TABLE_END -->
-  <!-- DATA:LAST_UPDATED --> etc.
 """
 
 import argparse
@@ -48,7 +36,7 @@ logger = logging.getLogger("generate_html")
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--week", type=str, default=None,
-                   help="Uke-startdato YYYY-MM-DD (mandag). Standard: siste fullførte uke.")
+                   help="Uke-startdato YYYY-MM-DD. Standard: siste fullførte uke.")
     p.add_argument("--no-cache", action="store_true")
     return p.parse_args()
 
@@ -63,7 +51,7 @@ def get_week_bounds(override=None):
     return start, end
 
 
-# ── Pill HTML helpers ─────────────────────────────────────────────────────────
+# ── HTML helpers ──────────────────────────────────────────────────────────────
 
 def risk_pill(level: str) -> str:
     cls = {"Høy": "pill-high", "Moderat": "pill-mod", "Lav": "pill-low"}.get(level, "pill-low")
@@ -87,6 +75,190 @@ def fmt(val, suffix="°C", decimals=1):
 def fmt_range(val, suffix="°C"):
     if val is None: return "N/A"
     return f"{val:.1f}{suffix}"
+
+
+# ── KPI sub-texts ─────────────────────────────────────────────────────────────
+
+def build_kpi_sub(analyses: list[dict], level: str) -> str:
+    """Return comma-separated short region names for a given risk level."""
+    regions = [a for a in analyses if a.get("risk_total") == level]
+    if not regions:
+        if level == "Høy":     return "Ingen høy-risiko regioner"
+        if level == "Moderat": return "Ingen moderat-risiko regioner"
+        if level == "Lav":     return "Alle regioner normale"
+    names = []
+    for a in regions:
+        rn = a["region_name"]
+        short = rn.split("–")[-1].strip() if "–" in rn else rn
+        # Shorten long names
+        short = short.replace(" / Amalfi", "").replace(" (nord)", "").replace(" (ref.)", "")
+        names.append(short)
+    return ", ".join(names)
+
+
+# ── Alert box ─────────────────────────────────────────────────────────────────
+
+def build_alert_box(analyses: list[dict], week_num: int, year: int) -> str:
+    """Generate dynamic alert box based on current risk levels."""
+    high = [a for a in analyses if a.get("risk_total") == "Høy"]
+    mod  = [a for a in analyses if a.get("risk_total") == "Moderat"]
+
+    if not high and not mod:
+        return '''<div class="alert-box success">
+    <strong>✅ NORMAL FORSYNINGSSITUASJON — UKE {week}/{year}</strong>
+    Alle regioner er innenfor normale parametere. Ingen aktive værvarsler eller forstyrrelser
+    i produksjon eller transport.
+  </div>'''.format(week=week_num, year=year)
+
+    if not high and mod:
+        mod_names = ", ".join(
+            a["region_name"].split("–")[-1].strip() if "–" in a["region_name"]
+            else a["region_name"] for a in mod
+        )
+        return f'''<div class="alert-box warning">
+    <strong>⚡ MODERAT FORSYNINGSRISIKO — UKE {week_num}/{year}</strong>
+    {len(mod)} region(er) med moderat risiko: {mod_names}.
+    Følg med på utvikling. Ingen kritiske forstyrrelser registrert.
+  </div>'''
+
+    # High risk exists — build detailed alert
+    high_names = ", ".join(
+        a["region_name"].split("–")[-1].strip() if "–" in a["region_name"]
+        else a["region_name"] for a in high
+    )
+    count = len(high)
+    simultaneous = "simultant " if count >= 3 else ""
+
+    # Collect key observations from high-risk regions
+    obs_lines = []
+    for a in high:
+        rn = a["region_name"].split("–")[-1].strip() if "–" in a["region_name"] else a["region_name"]
+        pct = a.get("precip_anomaly_pct")
+        td  = a.get("temp_day_anomaly")
+        parts = []
+        if pct is not None and abs(pct) > 50:
+            parts.append(f"nedbør {pct:+.0f}% vs. norm")
+        if td is not None and abs(td) > 1.5:
+            parts.append(f"temp {td:+.1f}°C vs. norm")
+        if parts:
+            obs_lines.append(f"{rn}: {', '.join(parts)}")
+
+    obs_text = ". ".join(obs_lines) + "." if obs_lines else ""
+
+    severity = "KRITISK" if count >= 3 else "HØYRISIKOVARSEL"
+    box_class = "critical" if count >= 3 else "warning"
+
+    return f'''<div class="alert-box {box_class}">
+    <strong>⚠️ {severity} FORSYNINGSSITUASJON — UKE {week_num}/{year}</strong>
+    {count} region(er) {simultaneous}med høy risiko: {high_names}.
+    {obs_text}
+  </div>'''
+
+
+# ── Supply chain observation cards ───────────────────────────────────────────
+
+def build_sc_observation_cards(analyses: list[dict]) -> str:
+    """
+    Generate observation cards based purely on data — no product assumptions.
+    One card per high/moderate risk region, plus one summary card if all-low.
+    """
+    high = [a for a in analyses if a.get("risk_total") == "Høy"]
+    mod  = [a for a in analyses if a.get("risk_total") == "Moderat"]
+    low  = [a for a in analyses if a.get("risk_total") == "Lav"]
+
+    cards = []
+
+    # Cards for high-risk regions
+    for a in high:
+        rn  = a["region_name"].split("–")[-1].strip() if "–" in a["region_name"] else a["region_name"]
+        rid = a["region_id"]
+        cc  = rid.split("_")[0]
+        flag = {"IT": "🇮🇹", "ES": "🇪🇸", "PT": "🇵🇹", "MA": "🇲🇦"}.get(cc, "🌍")
+
+        obs = []
+        pct = a.get("precip_anomaly_pct")
+        td  = a.get("temp_day_anomaly")
+        tn  = a.get("temp_night_anomaly")
+        rt  = a.get("risk_transport", "Lav")
+        rp  = a.get("risk_precip", "Lav")
+
+        if pct is not None:
+            obs.append(f"Nedbørsavvik: {pct:+.0f}% vs. normalperiode")
+        if td is not None:
+            obs.append(f"Dagtemperatur: {td:+.1f}°C vs. normal")
+        if tn is not None:
+            obs.append(f"Nattetemperatur: {tn:+.1f}°C vs. normal")
+        if rt == "Høy":
+            obs.append("Transportrisiko: Høy")
+        if rp == "Høy":
+            obs.append("Nedbørsrisiko: Høy")
+
+        note = a.get("forecast_precip_note", "")
+        if note:
+            obs.append(note)
+
+        obs_html = "".join(f"<li>{o}</li>" for o in obs) if obs else "<li>Ingen detaljdata tilgjengelig</li>"
+
+        cards.append(f'''<div class="info-card" style="border-left:3px solid #ef4444;">
+      <span class="info-card-icon">{flag} ⚠️</span>
+      <div class="info-card-title">{rn} — Høy risiko</div>
+      <div class="info-card-body"><ul style="margin:0 0 0 1rem;font-size:12px;">{obs_html}</ul></div>
+    </div>''')
+
+    # Cards for moderate-risk regions
+    for a in mod:
+        rn  = a["region_name"].split("–")[-1].strip() if "–" in a["region_name"] else a["region_name"]
+        rid = a["region_id"]
+        cc  = rid.split("_")[0]
+        flag = {"IT": "🇮🇹", "ES": "🇪🇸", "PT": "🇵🇹", "MA": "🇲🇦"}.get(cc, "🌍")
+
+        obs = []
+        pct = a.get("precip_anomaly_pct")
+        td  = a.get("temp_day_anomaly")
+
+        if pct is not None:
+            obs.append(f"Nedbørsavvik: {pct:+.0f}% vs. normalperiode")
+        if td is not None:
+            obs.append(f"Dagtemperatur: {td:+.1f}°C vs. normal")
+
+        obs_html = "".join(f"<li>{o}</li>" for o in obs) if obs else "<li>Ingen detaljdata</li>"
+
+        cards.append(f'''<div class="info-card" style="border-left:3px solid #f97316;">
+      <span class="info-card-icon">{flag} ⚡</span>
+      <div class="info-card-title">{rn} — Moderat risiko</div>
+      <div class="info-card-body"><ul style="margin:0 0 0 1rem;font-size:12px;">{obs_html}</ul></div>
+    </div>''')
+
+    # Low-risk summary card (only if some are low)
+    if low:
+        low_names = ", ".join(
+            a["region_name"].split("–")[-1].strip() if "–" in a["region_name"]
+            else a["region_name"] for a in low
+        )
+        cards.append(f'''<div class="info-card" style="border-left:3px solid #22c55e;">
+      <span class="info-card-icon">✅</span>
+      <div class="info-card-title">Normale regioner ({len(low)})</div>
+      <div class="info-card-body" style="font-size:12px;">{low_names}</div>
+    </div>''')
+
+    # Multi-crisis summary card
+    if len(high) >= 2:
+        cards.append(f'''<div class="info-card" style="border-left:3px solid #dc2626;background:#fff5f5;">
+      <span class="info-card-icon">⚠️</span>
+      <div class="info-card-title">Simultankrise — {len(high)} regioner</div>
+      <div class="info-card-body" style="font-size:12px;">
+        {len(high)} høy-risiko regioner aktive samtidig. Se temperatur- og nedbørstabellene for detaljerte avvik per region.
+      </div>
+    </div>''')
+
+    if not cards:
+        cards.append('''<div class="info-card" style="border-left:3px solid #22c55e;">
+      <span class="info-card-icon">✅</span>
+      <div class="info-card-title">Alle regioner — Normal status</div>
+      <div class="info-card-body" style="font-size:12px;">Ingen avvik registrert. Normale forhold i alle overvåkede regioner.</div>
+    </div>''')
+
+    return f'<div class="info-grid mt-2">\n' + "\n".join(cards) + "\n</div>"
 
 
 # ── Build table rows ──────────────────────────────────────────────────────────
@@ -163,10 +335,10 @@ def build_precip_rows(analyses: list[dict]) -> str:
         note = a.get("forecast_precip_note", "")
         pct_cls = "pill-high" if pct and pct > 150 else "pill-mod" if pct and pct > 50 else "pill-cool" if pct and pct < -20 else "pill-low"
         bg = ' style="background:#fff5f5;"' if rp == "Høy" else ""
-        obs_str  = f"{obs:.1f}"  if obs  is not None else "N/A"
-        norm_str = f"{norm:.1f}" if norm is not None else "N/A"
+        obs_str  = f"{obs:.1f}"   if obs  is not None else "N/A"
+        norm_str = f"{norm:.1f}"  if norm is not None else "N/A"
         anom_str = f"{anom:+.1f}" if anom is not None else "N/A"
-        pct_str  = f"{pct:+.0f}%" if pct is not None else "N/A"
+        pct_str  = f"{pct:+.0f}%" if pct  is not None else "N/A"
 
         rows.append(f"""<tr{bg}>
           <td><span class="region-name">{rn.split("–")[-1].strip() if "–" in rn else rn}</span>
@@ -234,11 +406,10 @@ def build_trend_rows(analyses: list[dict]) -> str:
     return "\n".join(rows)
 
 
-# ── Update metadata in HTML ───────────────────────────────────────────────────
+# ── Update HTML ───────────────────────────────────────────────────────────────
 
 def update_html(html: str, analyses: list[dict],
                 week_start: date, week_end: date) -> str:
-    """Inject computed data into HTML via placeholder comments."""
 
     week_num = week_start.isocalendar()[1]
     year     = week_start.year
@@ -248,19 +419,15 @@ def update_html(html: str, analyses: list[dict],
     updated_str = f"Uke {week_num}, {year}"
     data_str    = f"{date.today().day}. {months_no[date.today().month-1]} {date.today().year}"
 
-    # ── Klokkeslett ──────────────────────────────────────────────────────────
-    from datetime import timezone, timedelta
     cet = timezone(timedelta(hours=1))
     now_cet = datetime.now(cet)
     time_str = now_cet.strftime("%H:%M")
     last_updated_full = f"Uke {week_num}, {year} &nbsp;·&nbsp; Oppdatert {data_str} kl. {time_str} CET"
 
-    # ── Simple text replacements ──────────────────────────────────────────────
+    # Simple text replacements
     html = re.sub(r"Uke \d+, \d{4}", updated_str, html)
     html = re.sub(r"Rapport nr\. \d+/\d{4}", f"Rapport nr. {week_num}/{year}", html)
-    html = re.sub(r"Sist oppdatert: [^\|]+\|", f"Sist oppdatert: {updated_str}  |", html)
 
-    # ── Table row injections (via sentinel comments) ──────────────────────────
     def replace_section(html, start_tag, end_tag, new_content):
         pattern = rf"{re.escape(start_tag)}.*?{re.escape(end_tag)}"
         replacement = f"{start_tag}\n{new_content}\n{end_tag}"
@@ -269,6 +436,7 @@ def update_html(html: str, analyses: list[dict],
             logger.warning(f"Sentinel not found: {start_tag}")
         return new_html
 
+    # ── Table rows ────────────────────────────────────────────────────────────
     html = replace_section(html,
         "<!-- DATA:OVERVIEW_ROWS_START -->", "<!-- DATA:OVERVIEW_ROWS_END -->",
         build_overview_rows(analyses))
@@ -289,25 +457,48 @@ def update_html(html: str, analyses: list[dict],
         "<!-- DATA:TREND_ROWS_START -->", "<!-- DATA:TREND_ROWS_END -->",
         build_trend_rows(analyses))
 
-    # ── Klokkeslett-sentinel ──────────────────────────────────────────────────
+    # ── Last updated ──────────────────────────────────────────────────────────
     html = replace_section(html,
         "<!-- DATA:LAST_UPDATED_START -->", "<!-- DATA:LAST_UPDATED_END -->",
         last_updated_full)
 
-    # ── KPI cards ─────────────────────────────────────────────────────────────
+    # ── KPI counts + sub-texts ────────────────────────────────────────────────
     high = sum(1 for a in analyses if a.get("risk_total") == "Høy")
     mod  = sum(1 for a in analyses if a.get("risk_total") == "Moderat")
     low  = sum(1 for a in analyses if a.get("risk_total") == "Lav")
 
-    def repl_kpi(html, sentinel, value):
+    def repl_kpi(h, sentinel, value):
         return re.sub(rf"<!-- KPI:{sentinel} -->[^<]*",
-                      f"<!-- KPI:{sentinel} -->{value}", html)
+                      f"<!-- KPI:{sentinel} -->{value}", h)
 
     html = repl_kpi(html, "HIGH_COUNT", str(high))
     html = repl_kpi(html, "MOD_COUNT",  str(mod))
     html = repl_kpi(html, "LOW_COUNT",  str(low))
 
-    # ── News section ──────────────────────────────────────────────────────────
+    # ── KPI sub-texts (region name lists) ─────────────────────────────────────
+    html = replace_section(html,
+        "<!-- KPI:HIGH_SUB_START -->", "<!-- KPI:HIGH_SUB_END -->",
+        build_kpi_sub(analyses, "Høy"))
+
+    html = replace_section(html,
+        "<!-- KPI:MOD_SUB_START -->", "<!-- KPI:MOD_SUB_END -->",
+        build_kpi_sub(analyses, "Moderat"))
+
+    html = replace_section(html,
+        "<!-- KPI:LOW_SUB_START -->", "<!-- KPI:LOW_SUB_END -->",
+        build_kpi_sub(analyses, "Lav"))
+
+    # ── Alert box ─────────────────────────────────────────────────────────────
+    html = replace_section(html,
+        "<!-- DATA:ALERT_BOX_START -->", "<!-- DATA:ALERT_BOX_END -->",
+        build_alert_box(analyses, week_num, year))
+
+    # ── Supply chain observation cards ────────────────────────────────────────
+    html = replace_section(html,
+        "<!-- DATA:SC_CARDS_START -->", "<!-- DATA:SC_CARDS_END -->",
+        build_sc_observation_cards(analyses))
+
+    # ── News ──────────────────────────────────────────────────────────────────
     articles = fetch_news(max_articles=12)
     news_html = render_news_html(articles)
     html = replace_section(html,
@@ -325,31 +516,24 @@ def main():
 
     logger.info(f"Generating report for week {week_start} – {week_end}")
 
-    # 1. Fetch Europa-data
     fetched = fetch_all_regions(
         config_path="config/regions.yaml",
         use_cache=not args.no_cache,
     )
 
-    # 2. Analyze
     analyses = analyze_all(fetched, config_path="config/regions.yaml")
 
-    # 3. Narratives
     narratives = generate_all_narratives(analyses)
     logger.info(f"Narrative mode: {narratives['mode_used']}")
 
-    # 4. Load HTML template
     html_path = Path("index.html")
     if not html_path.exists():
-        logger.error("index.html not found. Place this script in the repo root.")
+        logger.error("index.html not found.")
         sys.exit(1)
 
     html = html_path.read_text(encoding="utf-8")
-
-    # 5. Inject Europa-data
     html = update_html(html, analyses, week_start, week_end)
 
-    # 6. Hent og injiser Norge-data (met.no)
     logger.info("Henter norske værdata fra met.no...")
     try:
         norway_data = fetch_all_norway_regions()
@@ -358,22 +542,18 @@ def main():
     except Exception as e:
         logger.error(f"Feil ved henting av Norge-data: {e}")
 
-    # 7. Hent og injiser ECMWF-data
     logger.info("Henter ECMWF Europa-regioner...")
     try:
         europe_ecmwf = fetch_ecmwf_all_regions(EUROPE_REGIONS)
-        logger.info("Henter ECMWF Norge-regioner...")
         norway_ecmwf = fetch_ecmwf_all_regions(NORWAY_REGIONS)
         html = inject_ecmwf_into_html(html, europe_ecmwf, norway_ecmwf)
         logger.info("ECMWF-data injisert.")
     except Exception as e:
         logger.error(f"Feil ved henting av ECMWF-data: {e}")
 
-    # 8. Write back
     html_path.write_text(html, encoding="utf-8")
     logger.info("index.html updated successfully.")
 
-    # Summary
     high_regions = [a["region_name"] for a in analyses if a.get("risk_total") == "Høy"]
     if high_regions:
         logger.warning(f"HIGH RISK: {', '.join(high_regions)}")
