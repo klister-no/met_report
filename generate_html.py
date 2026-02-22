@@ -500,6 +500,11 @@ def update_html(html: str, analyses: list[dict],
         "<!-- DATA:SC_CARDS_START -->", "<!-- DATA:SC_CARDS_END -->",
         build_sc_observation_cards(analyses))
 
+    # ── Precip alert ─────────────────────────────────────────────────────────
+    html = replace_section(html,
+        "<!-- DATA:PRECIP_ALERT_START -->", "<!-- DATA:PRECIP_ALERT_END -->",
+        build_precip_alert(analyses))
+
     # ── Confidence grid ──────────────────────────────────────────────────────
     html = replace_section(html,
         "<!-- DATA:CONFIDENCE_START -->", "<!-- DATA:CONFIDENCE_END -->",
@@ -573,6 +578,35 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ── Precip alert box ─────────────────────────────────────────────────────────
+
+def build_precip_alert(analyses: list[dict]) -> str:
+    """Dynamic alert under precip table — only show if extreme precip detected."""
+    extreme = [a for a in analyses if a.get("precip_anomaly_pct") is not None
+               and a.get("precip_anomaly_pct") > 150]
+    if not extreme:
+        return ""
+
+    names = ", ".join(
+        a["region_name"].split("–")[-1].strip() if "–" in a["region_name"]
+        else a["region_name"] for a in extreme
+    )
+    max_pct = max(a["precip_anomaly_pct"] for a in extreme)
+    severity = "critical" if max_pct > 300 else "warning"
+    icon = "⚠️" if max_pct > 300 else "⚡"
+    max_pct_str = f"{max_pct:+.0f}%"
+
+    lines = [
+        f'  <div class="alert-box {severity} mt-2">',
+        f'    <strong>{icon} Ekstremt nedbørsavvik registrert</strong>',
+        f'    {len(extreme)} region(er) med nedbør over 150% av normalperiode: {names}.',
+        f'    Høyeste avvik: {max_pct_str} vs. klimanormal (WMO 1991–2020).',
+        '  </div>',
+    ]
+    return "
+".join(lines)
 
 
 # ── Confidence grid (dynamic) ─────────────────────────────────────────────────
