@@ -372,6 +372,29 @@ def build_supply_chain_rows(analyses: list[dict]) -> str:
     return "\n".join(rows)
 
 
+def build_sparkline(history: list[dict]) -> str:
+    """Build a small bar chart from risk history (last 4 weeks)."""
+    if not history:
+        return '<div class="sparkbar-wrap"><span style="font-size:10px;color:var(--muted);">Baseline</span></div>'
+
+    bars = []
+    max_weeks = 4
+    padded = ([None] * (max_weeks - len(history))) + history[-max_weeks:]
+
+    for h in padded:
+        if h is None:
+            bars.append('<div class="sparkbar sparkbar-neu" style="height:6px;" title="Ingen data"></div>')
+        else:
+            risk = h.get("risk_total", "Lav")
+            pct  = h.get("precip_anomaly_pct", 0) or 0
+            height = min(28, max(4, int(abs(pct) / 20)))
+            cls = {"Høy": "sparkbar-high", "Moderat": "sparkbar-mod", "Lav": "sparkbar-low"}.get(risk, "sparkbar-neu")
+            week = h.get("week", "")
+            bars.append(f'<div class="sparkbar {cls}" style="height:{height}px;" title="Uke {week}: {risk}, nedbør {pct:+.0f}%"></div>')
+
+    return '<div class="sparkbar-wrap">' + "".join(bars) + "</div>"
+
+
 def build_trend_rows(analyses: list[dict]) -> str:
     rows = []
     for a in analyses:
@@ -663,29 +686,6 @@ def build_confidence_grid(analyses: list[dict]) -> str:
 
 
 # ── Sparkline bars for trend table ───────────────────────────────────────────
-
-def build_sparkline(history: list[dict]) -> str:
-    """Build a small bar chart from risk history (last 4 weeks)."""
-    if not history:
-        return '<div class="sparkbar-wrap"><span style="font-size:10px;color:var(--muted);">Baseline</span></div>'
-
-    bars = []
-    max_weeks = 4
-    padded = ([None] * (max_weeks - len(history))) + history[-max_weeks:]
-
-    for h in padded:
-        if h is None:
-            bars.append('<div class="sparkbar sparkbar-neu" style="height:6px;" title="Ingen data"></div>')
-        else:
-            risk = h.get("risk_total", "Lav")
-            pct  = h.get("precip_anomaly_pct", 0) or 0
-            height = min(28, max(4, int(abs(pct) / 20)))
-            cls = {"Høy": "sparkbar-high", "Moderat": "sparkbar-mod", "Lav": "sparkbar-low"}.get(risk, "sparkbar-neu")
-            week = h.get("week", "")
-            bars.append(f'<div class="sparkbar {cls}" style="height:{height}px;" title="Uke {week}: {risk}, nedbør {pct:+.0f}%"></div>')
-
-    return '<div class="sparkbar-wrap">' + "".join(bars) + "</div>"
-
 
 # ── Port / ferry alert box ────────────────────────────────────────────────────
 
