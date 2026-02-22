@@ -66,6 +66,39 @@ def symbol_to_emoji(symbol: str) -> str:
     return "🌡️"
 
 
+def generate_temp_sparkline(forecast_days: list) -> str:
+    """CSS-based temperature sparkline for 10-day forecast."""
+    if not forecast_days:
+        return ""
+    days = forecast_days[:10]
+    # Normalize temperatures to bar heights (4-32px range)
+    temps = [d.get("temp_max", 0) for d in days]
+    mn, mx = min(temps), max(temps)
+    span = mx - mn if mx != mn else 1
+    bars = []
+    for d, t in zip(days, temps):
+        has_frost = d.get("has_frost", False)
+        avvik = d.get("temp_avvik", 0)
+        h = int(4 + (t - mn) / span * 28)
+        color = "#2563eb" if has_frost else ("#ef4444" if avvik > 2 else "#22c55e" if avvik > -1 else "#3b82f6")
+        date_short = d.get("date_display", "")[:5]
+        bars.append(
+            f'<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">'
+            f'<div style="width:18px;height:{h}px;background:{color};border-radius:3px 3px 0 0;" title="{date_short}: {t}°C"></div>'
+            f'<div style="font-size:9px;color:#888;white-space:nowrap;">{date_short}</div>'
+            f'</div>'
+        )
+    return (
+        f'<div style="margin-top:12px;">'
+        f'<div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:6px;">📊 Temperatur 10 dager (maks °C)</div>'
+        f'<div style="display:flex;align-items:flex-end;gap:4px;height:50px;padding-bottom:18px;">'
+        + "".join(bars) +
+        f'</div>'
+        f'<div style="font-size:10px;color:#94a3b8;margin-top:2px;">🔵 Frost &nbsp; 🔴 +2°C over normalt &nbsp; 🟢 Normal</div>'
+        f'</div>'
+    )
+
+
 def generate_last_updated_html() -> str:
     """Genererer 'Sist oppdatert'-streng med klokkeslett."""
     now_cet = datetime.now(CET)
@@ -232,6 +265,7 @@ def generate_region_cards(regions_data: list) -> str:
                 {frost['emoji']} <strong>Frost:</strong> {frost['detail']}
             </div>
 
+            {generate_temp_sparkline(forecast)}
             {prognose_html}
         </div>"""
 
@@ -247,10 +281,9 @@ def generate_norway_section_html(regions_data: list) -> str:
     region_cards = generate_region_cards(regions_data)
 
     return f"""
-<section id="section-norway" class="tab-section" style="display:none">
     <div class="section-header">
         <h2>🇳🇴 Norsk Produksjon — Vær &amp; Sesong</h2>
-        <p style="color:#666;margin-top:4px">
+        <p style="color:#666;margin-top:4px;font-size:13px;">
             Temperatur, nedbør, frostrisiko og 10-dagersprognose for norske frukt- og grøntregioner.<br>
             Kilde: <a href="https://api.met.no" target="_blank">met.no Locationforecast 2.0</a> ·
             Avvik mot WMO-normaler 1991–2020 · Oppdatert {date_str}
@@ -258,9 +291,9 @@ def generate_norway_section_html(regions_data: list) -> str:
     </div>
 
     <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:14px 18px;margin-bottom:24px">
-        <strong>🗓️ Sesongstatus februar 2026:</strong>
-        Norsk produksjonssesong er ikke påbegynt. Overvåking av vinterforhold, frostdybde og
-        sesongprognose er relevant for planlegging av innkjøp, lagervolum og tidspunkt for norsk sesongstart.
+        <strong>🗓️ Sesongstatus:</strong>
+        Overvåking av vinterforhold, frostdybde og sesongprognose er relevant for planlegging
+        av innkjøp, lagervolum og tidspunkt for norsk sesongstart.
         Vestfold og Rogaland er tidligst ute (jordbær fra slutten av mai / juni).
     </div>
 
@@ -270,33 +303,18 @@ def generate_norway_section_html(regions_data: list) -> str:
     {region_cards}
 
     <div style="background:#f5f5f5;border-radius:8px;padding:14px 18px;margin-top:16px;font-size:0.82em;color:#666">
-        <strong>Datakilder og metode:</strong>
-        Værdata hentes fra <a href="https://api.met.no/weatherapi/locationforecast/2.0/" target="_blank">met.no Locationforecast 2.0</a>
-        ved hvert oppdateringsintervall (06:00 og 21:00 CET). Representativt målepunkt per region.
-        Klimanormaler: WMO 1991–2020 / met.no Klimaatlas / seNorge.
-        Sesongkalender basert på Statsforvalteren i Vestfold og Telemark (2021) og SSB Hagebruksavlinger.
-    </div>
-</section>"""
+        <strong>Datakilder:</strong>
+        met.no Locationforecast 2.0 · Klimanormaler WMO 1991–2020 · Oppdateres kl. 06:00 og 21:00 CET.
+    </div>"""
 
 
 def inject_norway_into_html(html_content: str, regions_data: list) -> str:
     """
     Injiserer Norge-data i index.html via sentinelkommentarer.
-    Håndterer:
-      - <!-- DATA:NORWAY_SECTION_START --> ... <!-- DATA:NORWAY_SECTION_END -->
-      - <!-- DATA:LAST_UPDATED_START --> ... <!-- DATA:LAST_UPDATED_END -->
+    Håndterer: <!-- DATA:NORWAY_SECTION_START --> ... <!-- DATA:NORWAY_SECTION_END -->
     """
     import re
 
-    # 1. Sist oppdatert
-    last_updated = generate_last_updated_html()
-    html_content = re.sub(
-        r'<!-- DATA:LAST_UPDATED_START -->.*?<!-- DATA:LAST_UPDATED_END -->',
-        f'<!-- DATA:LAST_UPDATED_START -->{last_updated}<!-- DATA:LAST_UPDATED_END -->',
-        html_content, flags=re.DOTALL
-    )
-
-    # 2. Norge-seksjonen
     norway_html = generate_norway_section_html(regions_data)
     html_content = re.sub(
         r'<!-- DATA:NORWAY_SECTION_START -->.*?<!-- DATA:NORWAY_SECTION_END -->',
