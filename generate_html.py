@@ -605,8 +605,7 @@ def build_precip_alert(analyses: list[dict]) -> str:
         f'    Høyeste avvik: {max_pct_str} vs. klimanormal (WMO 1991–2020).',
         '  </div>',
     ]
-    return "
-".join(lines)
+    return "\n".join(lines)
 
 
 # ── Confidence grid (dynamic) ─────────────────────────────────────────────────
