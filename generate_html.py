@@ -1,7 +1,8 @@
 """
 generate_html.py
 ----------------
-Henter værdata, analyserer og skriver oppdatert index.html.
+Henter vaerdata, analyserer og skriver oppdatert index.html.
+Alle build_*-funksjoner er definert foer update_html og main().
 """
 
 import argparse
@@ -33,10 +34,14 @@ logging.basicConfig(
 logger = logging.getLogger("generate_html")
 
 
+# =============================================================================
+# ARGUMENT PARSING + WEEK BOUNDS
+# =============================================================================
+
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--week", type=str, default=None,
-                   help="Uke-startdato YYYY-MM-DD. Standard: siste fullførte uke.")
+                   help="Uke-startdato YYYY-MM-DD. Standard: siste fullfoerte uke.")
     p.add_argument("--no-cache", action="store_true")
     return p.parse_args()
 
@@ -51,10 +56,15 @@ def get_week_bounds(override=None):
     return start, end
 
 
-# ── HTML helpers ──────────────────────────────────────────────────────────────
+# =============================================================================
+# HTML HELPERS
+# =============================================================================
 
 def risk_pill(level: str) -> str:
-    cls = {"Høy": "pill-high", "Moderat": "pill-mod", "Lav": "pill-low"}.get(level, "pill-low")
+    cls = {"Hoey": "pill-high", "Moderat": "pill-mod", "Lav": "pill-low"}.get(level, "pill-low")
+    # Handle Norwegian characters
+    if level == "Høy":
+        cls = "pill-high"
     return f'<span class="pill {cls}">{level}</span>'
 
 
@@ -63,65 +73,72 @@ def status_icon(status: str) -> str:
 
 
 def anom_class(val):
-    if val is None: return "anom-neu"
+    if val is None:
+        return "anom-neu"
     return "anom-pos" if val > 0 else "anom-neg" if val < 0 else "anom-neu"
 
 
 def fmt(val, suffix="°C", decimals=1):
-    if val is None: return "N/A"
+    if val is None:
+        return "N/A"
     return f"{val:+.{decimals}f}{suffix}" if val != 0 else f"0{suffix}"
 
 
 def fmt_range(val, suffix="°C"):
-    if val is None: return "N/A"
+    if val is None:
+        return "N/A"
     return f"{val:.1f}{suffix}"
 
 
-# ── KPI sub-texts ─────────────────────────────────────────────────────────────
+# =============================================================================
+# BUILD FUNCTIONS — all defined here, before update_html
+# =============================================================================
 
-def build_kpi_sub(analyses: list[dict], level: str) -> str:
+def build_kpi_sub(analyses: list, level: str) -> str:
     """Return comma-separated short region names for a given risk level."""
     regions = [a for a in analyses if a.get("risk_total") == level]
     if not regions:
-        if level == "Høy":     return "Ingen høy-risiko regioner"
-        if level == "Moderat": return "Ingen moderat-risiko regioner"
-        if level == "Lav":     return "Alle regioner normale"
+        if level == "Høy":
+            return "Ingen høy-risiko regioner"
+        if level == "Moderat":
+            return "Ingen moderat-risiko regioner"
+        if level == "Lav":
+            return "Alle regioner normale"
     names = []
     for a in regions:
         rn = a["region_name"]
         short = rn.split("–")[-1].strip() if "–" in rn else rn
-        # Shorten long names
         short = short.replace(" / Amalfi", "").replace(" (nord)", "").replace(" (ref.)", "")
         names.append(short)
     return ", ".join(names)
 
 
-# ── Alert box ─────────────────────────────────────────────────────────────────
-
-def build_alert_box(analyses: list[dict], week_num: int, year: int) -> str:
+def build_alert_box(analyses: list, week_num: int, year: int) -> str:
     """Generate dynamic alert box based on current risk levels."""
     high = [a for a in analyses if a.get("risk_total") == "Høy"]
     mod  = [a for a in analyses if a.get("risk_total") == "Moderat"]
 
     if not high and not mod:
-        return '''<div class="alert-box success">
-    <strong>✅ NORMAL FORSYNINGSSITUASJON — UKE {week}/{year}</strong>
-    Alle regioner er innenfor normale parametere. Ingen aktive værvarsler eller forstyrrelser
-    i produksjon eller transport.
-  </div>'''.format(week=week_num, year=year)
+        return (
+            '<div class="alert-box success">'
+            '<strong>✅ NORMAL FORSYNINGSSITUASJON — UKE {w}/{y}</strong> '
+            'Alle regioner er innenfor normale parametere. Ingen aktive forstyrrelser.'
+            '</div>'
+        ).format(w=week_num, y=year)
 
     if not high and mod:
         mod_names = ", ".join(
             a["region_name"].split("–")[-1].strip() if "–" in a["region_name"]
             else a["region_name"] for a in mod
         )
-        return f'''<div class="alert-box warning">
-    <strong>⚡ MODERAT FORSYNINGSRISIKO — UKE {week_num}/{year}</strong>
-    {len(mod)} region(er) med moderat risiko: {mod_names}.
-    Følg med på utvikling. Ingen kritiske forstyrrelser registrert.
-  </div>'''
+        return (
+            f'<div class="alert-box warning">'
+            f'<strong>⚡ MODERAT FORSYNINGSRISIKO — UKE {week_num}/{year}</strong> '
+            f'{len(mod)} region(er) med moderat risiko: {mod_names}. '
+            f'Ingen kritiske forstyrrelser registrert.'
+            f'</div>'
+        )
 
-    # High risk exists — build detailed alert
     high_names = ", ".join(
         a["region_name"].split("–")[-1].strip() if "–" in a["region_name"]
         else a["region_name"] for a in high
@@ -129,7 +146,6 @@ def build_alert_box(analyses: list[dict], week_num: int, year: int) -> str:
     count = len(high)
     simultaneous = "simultant " if count >= 3 else ""
 
-    # Collect key observations from high-risk regions
     obs_lines = []
     for a in high:
         rn = a["region_name"].split("–")[-1].strip() if "–" in a["region_name"] else a["region_name"]
@@ -144,245 +160,252 @@ def build_alert_box(analyses: list[dict], week_num: int, year: int) -> str:
             obs_lines.append(f"{rn}: {', '.join(parts)}")
 
     obs_text = ". ".join(obs_lines) + "." if obs_lines else ""
-
     severity = "KRITISK" if count >= 3 else "HØYRISIKOVARSEL"
     box_class = "critical" if count >= 3 else "warning"
 
-    return f'''<div class="alert-box {box_class}">
-    <strong>⚠️ {severity} FORSYNINGSSITUASJON — UKE {week_num}/{year}</strong>
-    {count} region(er) {simultaneous}med høy risiko: {high_names}.
-    {obs_text}
-  </div>'''
+    return (
+        f'<div class="alert-box {box_class}">'
+        f'<strong>⚠️ {severity} FORSYNINGSSITUASJON — UKE {week_num}/{year}</strong> '
+        f'{count} region(er) {simultaneous}med høy risiko: {high_names}. '
+        f'{obs_text}'
+        f'</div>'
+    )
 
 
-# ── Supply chain observation cards ───────────────────────────────────────────
-
-def build_sc_observation_cards(analyses: list[dict]) -> str:
-    """
-    Generate observation cards based purely on data — no product assumptions.
-    One card per high/moderate risk region, plus one summary card if all-low.
-    """
+def build_sc_observation_cards(analyses: list) -> str:
+    """Generate observation cards based on data only — no product assumptions."""
     high = [a for a in analyses if a.get("risk_total") == "Høy"]
     mod  = [a for a in analyses if a.get("risk_total") == "Moderat"]
     low  = [a for a in analyses if a.get("risk_total") == "Lav"]
-
     cards = []
 
-    # Cards for high-risk regions
     for a in high:
-        rn  = a["region_name"].split("–")[-1].strip() if "–" in a["region_name"] else a["region_name"]
-        rid = a["region_id"]
-        cc  = rid.split("_")[0]
+        rn   = a["region_name"].split("–")[-1].strip() if "–" in a["region_name"] else a["region_name"]
+        cc   = a["region_id"].split("_")[0]
         flag = {"IT": "🇮🇹", "ES": "🇪🇸", "PT": "🇵🇹", "MA": "🇲🇦"}.get(cc, "🌍")
-
-        obs = []
-        pct = a.get("precip_anomaly_pct")
-        td  = a.get("temp_day_anomaly")
-        tn  = a.get("temp_night_anomaly")
-        rt  = a.get("risk_transport", "Lav")
-        rp  = a.get("risk_precip", "Lav")
-
+        obs  = []
+        pct  = a.get("precip_anomaly_pct")
+        td   = a.get("temp_day_anomaly")
+        tn   = a.get("temp_night_anomaly")
         if pct is not None:
             obs.append(f"Nedbørsavvik: {pct:+.0f}% vs. normalperiode")
         if td is not None:
             obs.append(f"Dagtemperatur: {td:+.1f}°C vs. normal")
         if tn is not None:
             obs.append(f"Nattetemperatur: {tn:+.1f}°C vs. normal")
-        if rt == "Høy":
+        if a.get("risk_transport") == "Høy":
             obs.append("Transportrisiko: Høy")
-        if rp == "Høy":
-            obs.append("Nedbørsrisiko: Høy")
-
         note = a.get("forecast_precip_note", "")
         if note:
             obs.append(note)
+        obs_html = "".join(f"<li>{o}</li>" for o in obs) if obs else "<li>Ingen detaljdata</li>"
+        cards.append(
+            f'<div class="info-card" style="border-left:3px solid #ef4444;">'
+            f'<span class="info-card-icon">{flag} ⚠️</span>'
+            f'<div class="info-card-title">{rn} — Høy risiko</div>'
+            f'<div class="info-card-body"><ul style="margin:0 0 0 1rem;font-size:12px;">{obs_html}</ul></div>'
+            f'</div>'
+        )
 
-        obs_html = "".join(f"<li>{o}</li>" for o in obs) if obs else "<li>Ingen detaljdata tilgjengelig</li>"
-
-        cards.append(f'''<div class="info-card" style="border-left:3px solid #ef4444;">
-      <span class="info-card-icon">{flag} ⚠️</span>
-      <div class="info-card-title">{rn} — Høy risiko</div>
-      <div class="info-card-body"><ul style="margin:0 0 0 1rem;font-size:12px;">{obs_html}</ul></div>
-    </div>''')
-
-    # Cards for moderate-risk regions
     for a in mod:
-        rn  = a["region_name"].split("–")[-1].strip() if "–" in a["region_name"] else a["region_name"]
-        rid = a["region_id"]
-        cc  = rid.split("_")[0]
+        rn   = a["region_name"].split("–")[-1].strip() if "–" in a["region_name"] else a["region_name"]
+        cc   = a["region_id"].split("_")[0]
         flag = {"IT": "🇮🇹", "ES": "🇪🇸", "PT": "🇵🇹", "MA": "🇲🇦"}.get(cc, "🌍")
-
-        obs = []
-        pct = a.get("precip_anomaly_pct")
-        td  = a.get("temp_day_anomaly")
-
+        obs  = []
+        pct  = a.get("precip_anomaly_pct")
+        td   = a.get("temp_day_anomaly")
         if pct is not None:
             obs.append(f"Nedbørsavvik: {pct:+.0f}% vs. normalperiode")
         if td is not None:
             obs.append(f"Dagtemperatur: {td:+.1f}°C vs. normal")
-
         obs_html = "".join(f"<li>{o}</li>" for o in obs) if obs else "<li>Ingen detaljdata</li>"
+        cards.append(
+            f'<div class="info-card" style="border-left:3px solid #f97316;">'
+            f'<span class="info-card-icon">{flag} ⚡</span>'
+            f'<div class="info-card-title">{rn} — Moderat risiko</div>'
+            f'<div class="info-card-body"><ul style="margin:0 0 0 1rem;font-size:12px;">{obs_html}</ul></div>'
+            f'</div>'
+        )
 
-        cards.append(f'''<div class="info-card" style="border-left:3px solid #f97316;">
-      <span class="info-card-icon">{flag} ⚡</span>
-      <div class="info-card-title">{rn} — Moderat risiko</div>
-      <div class="info-card-body"><ul style="margin:0 0 0 1rem;font-size:12px;">{obs_html}</ul></div>
-    </div>''')
-
-    # Low-risk summary card (only if some are low)
     if low:
         low_names = ", ".join(
             a["region_name"].split("–")[-1].strip() if "–" in a["region_name"]
             else a["region_name"] for a in low
         )
-        cards.append(f'''<div class="info-card" style="border-left:3px solid #22c55e;">
-      <span class="info-card-icon">✅</span>
-      <div class="info-card-title">Normale regioner ({len(low)})</div>
-      <div class="info-card-body" style="font-size:12px;">{low_names}</div>
-    </div>''')
+        cards.append(
+            f'<div class="info-card" style="border-left:3px solid #22c55e;">'
+            f'<span class="info-card-icon">✅</span>'
+            f'<div class="info-card-title">Normale regioner ({len(low)})</div>'
+            f'<div class="info-card-body" style="font-size:12px;">{low_names}</div>'
+            f'</div>'
+        )
 
-    # Multi-crisis summary card
     if len(high) >= 2:
-        cards.append(f'''<div class="info-card" style="border-left:3px solid #dc2626;background:#fff5f5;">
-      <span class="info-card-icon">⚠️</span>
-      <div class="info-card-title">Simultankrise — {len(high)} regioner</div>
-      <div class="info-card-body" style="font-size:12px;">
-        {len(high)} høy-risiko regioner aktive samtidig. Se temperatur- og nedbørstabellene for detaljerte avvik per region.
-      </div>
-    </div>''')
+        cards.append(
+            f'<div class="info-card" style="border-left:3px solid #dc2626;background:#fff5f5;">'
+            f'<span class="info-card-icon">⚠️</span>'
+            f'<div class="info-card-title">Simultankrise — {len(high)} regioner</div>'
+            f'<div class="info-card-body" style="font-size:12px;">'
+            f'{len(high)} høy-risiko regioner aktive samtidig. Se tabellene for detaljer.'
+            f'</div></div>'
+        )
 
     if not cards:
-        cards.append('''<div class="info-card" style="border-left:3px solid #22c55e;">
-      <span class="info-card-icon">✅</span>
-      <div class="info-card-title">Alle regioner — Normal status</div>
-      <div class="info-card-body" style="font-size:12px;">Ingen avvik registrert. Normale forhold i alle overvåkede regioner.</div>
-    </div>''')
+        cards.append(
+            '<div class="info-card" style="border-left:3px solid #22c55e;">'
+            '<span class="info-card-icon">✅</span>'
+            '<div class="info-card-title">Alle regioner — Normal status</div>'
+            '<div class="info-card-body" style="font-size:12px;">Ingen avvik registrert.</div>'
+            '</div>'
+        )
 
-    return f'<div class="info-grid mt-2">\n' + "\n".join(cards) + "\n</div>"
+    return '<div class="info-grid mt-2">\n' + "\n".join(cards) + "\n</div>"
 
 
-# ── Build table rows ──────────────────────────────────────────────────────────
-
-def build_overview_rows(analyses: list[dict]) -> str:
+def build_overview_rows(analyses: list) -> str:
     rows = []
     for a in analyses:
-        rn = a["region_name"]
-        rid = a["region_id"]
+        rn  = a["region_name"]
+        cc  = a["region_id"].split("_")[0]
         country_flag = {"IT": "🇮🇹 Italia", "ES": "🇪🇸 Spania",
                         "PT": "🇵🇹 Portugal", "MA": "🇲🇦 Marokko"}
-        cc = rid.split("_")[0]
-        flag = country_flag.get(cc, cc)
+        flag   = country_flag.get(cc, cc)
         status = a.get("temp_status", "🟢")
-        pct = a.get("precip_anomaly_pct")
+        pct    = a.get("precip_anomaly_pct")
         pct_str = f"{pct:+.0f}%" if pct is not None else "N/A"
-        pct_cls = "anom-pos" if pct and pct > 150 else "anom-neg" if pct and pct < -20 else "anom-neu"
+        pct_cls = ("anom-pos" if pct and pct > 150
+                   else "anom-neg" if pct and pct < -20
+                   else "anom-neu")
         bg = ' style="background:#fff5f5;"' if a.get("risk_total") == "Høy" else ""
-
-        rows.append(f"""<tr{bg}>
-          <td><span class="region-name">{rn.split("–")[-1].strip() if "–" in rn else rn}</span>
-              <span class="region-country">{cc}</span></td>
-          <td>{flag}</td>
-          <td>{status_icon(status)}</td>
-          <td class="{pct_cls}">{pct_str}</td>
-          <td>{risk_pill(a.get("risk_temp","Lav"))}</td>
-          <td>{risk_pill(a.get("risk_precip","Lav"))}</td>
-          <td>{risk_pill(a.get("risk_transport","Lav"))}</td>
-          <td>{risk_pill(a.get("risk_production","Lav"))}</td>
-          <td>{risk_pill(a.get("risk_total","Lav"))}</td>
-        </tr>""")
+        short = rn.split("–")[-1].strip() if "–" in rn else rn
+        rows.append(
+            f'<tr{bg}>'
+            f'<td><span class="region-name">{short}</span><span class="region-country">{cc}</span></td>'
+            f'<td>{flag}</td>'
+            f'<td>{status_icon(status)}</td>'
+            f'<td class="{pct_cls}">{pct_str}</td>'
+            f'<td>{risk_pill(a.get("risk_temp","Lav"))}</td>'
+            f'<td>{risk_pill(a.get("risk_precip","Lav"))}</td>'
+            f'<td>{risk_pill(a.get("risk_transport","Lav"))}</td>'
+            f'<td>{risk_pill(a.get("risk_production","Lav"))}</td>'
+            f'<td>{risk_pill(a.get("risk_total","Lav"))}</td>'
+            f'</tr>'
+        )
     return "\n".join(rows)
 
 
-def build_temp_rows(analyses: list[dict]) -> str:
+def build_temp_rows(analyses: list) -> str:
     rows = []
     for a in analyses:
-        rn = a["region_name"]
-        rid = a["region_id"]
-        cc = rid.split("_")[0]
-        da = a.get("temp_day_actual")
-        dn = a.get("temp_day_normal")
-        dd = a.get("temp_day_anomaly")
-        na = a.get("temp_night_actual")
-        nn = a.get("temp_night_normal")
-        nd = a.get("temp_night_anomaly")
+        rn  = a["region_name"]
+        cc  = a["region_id"].split("_")[0]
+        da  = a.get("temp_day_actual")
+        dn  = a.get("temp_day_normal")
+        dd  = a.get("temp_day_anomaly")
+        na  = a.get("temp_night_actual")
+        nn  = a.get("temp_night_normal")
+        nd  = a.get("temp_night_anomaly")
         status = a.get("temp_status", "🟢")
-
-        rows.append(f"""<tr>
-          <td><span class="region-name">{rn.split("–")[-1].strip() if "–" in rn else rn}</span>
-              <span class="region-country">{cc}</span></td>
-          <td class="mono">{fmt_range(da)}</td>
-          <td class="mono">{fmt_range(dn)}</td>
-          <td class="{anom_class(dd)}">{fmt(dd)}</td>
-          <td class="mono">{fmt_range(na)}</td>
-          <td class="mono">{fmt_range(nn)}</td>
-          <td class="{anom_class(nd)}">{fmt(nd)}</td>
-          <td>{status_icon(status)}</td>
-        </tr>""")
+        short  = rn.split("–")[-1].strip() if "–" in rn else rn
+        rows.append(
+            f'<tr>'
+            f'<td><span class="region-name">{short}</span><span class="region-country">{cc}</span></td>'
+            f'<td class="mono">{fmt_range(da)}</td>'
+            f'<td class="mono">{fmt_range(dn)}</td>'
+            f'<td class="{anom_class(dd)}">{fmt(dd)}</td>'
+            f'<td class="mono">{fmt_range(na)}</td>'
+            f'<td class="mono">{fmt_range(nn)}</td>'
+            f'<td class="{anom_class(nd)}">{fmt(nd)}</td>'
+            f'<td>{status_icon(status)}</td>'
+            f'</tr>'
+        )
     return "\n".join(rows)
 
 
-def build_precip_rows(analyses: list[dict]) -> str:
+def build_precip_rows(analyses: list) -> str:
     rows = []
     for a in analyses:
-        rn = a["region_name"]
-        rid = a["region_id"]
-        cc = rid.split("_")[0]
+        rn   = a["region_name"]
+        cc   = a["region_id"].split("_")[0]
         obs  = a.get("precip_actual_mm")
         norm = a.get("precip_normal_mm")
         anom = a.get("precip_anomaly_mm")
         pct  = a.get("precip_anomaly_pct")
         rp   = a.get("risk_precip", "Lav")
         note = a.get("forecast_precip_note", "")
-        pct_cls = "pill-high" if pct and pct > 150 else "pill-mod" if pct and pct > 50 else "pill-cool" if pct and pct < -20 else "pill-low"
-        bg = ' style="background:#fff5f5;"' if rp == "Høy" else ""
+        pct_cls = ("pill-high" if pct and pct > 150
+                   else "pill-mod" if pct and pct > 50
+                   else "pill-cool" if pct and pct < -20
+                   else "pill-low")
+        bg       = ' style="background:#fff5f5;"' if rp == "Høy" else ""
         obs_str  = f"{obs:.1f}"   if obs  is not None else "N/A"
         norm_str = f"{norm:.1f}"  if norm is not None else "N/A"
         anom_str = f"{anom:+.1f}" if anom is not None else "N/A"
         pct_str  = f"{pct:+.0f}%" if pct  is not None else "N/A"
-
-        rows.append(f"""<tr{bg}>
-          <td><span class="region-name">{rn.split("–")[-1].strip() if "–" in rn else rn}</span>
-              <span class="region-country">{cc}</span></td>
-          <td class="mono">{obs_str}</td>
-          <td class="mono">{norm_str}</td>
-          <td class="{anom_class(anom)}">{anom_str}</td>
-          <td><span class="pill {pct_cls}">{pct_str}</span></td>
-          <td>{risk_pill(rp)}</td>
-          <td style="font-size:11px; text-align:left;">{note}</td>
-        </tr>""")
+        short    = rn.split("–")[-1].strip() if "–" in rn else rn
+        rows.append(
+            f'<tr{bg}>'
+            f'<td><span class="region-name">{short}</span><span class="region-country">{cc}</span></td>'
+            f'<td class="mono">{obs_str}</td>'
+            f'<td class="mono">{norm_str}</td>'
+            f'<td class="{anom_class(anom)}">{anom_str}</td>'
+            f'<td><span class="pill {pct_cls}">{pct_str}</span></td>'
+            f'<td>{risk_pill(rp)}</td>'
+            f'<td style="font-size:11px;text-align:left;">{note}</td>'
+            f'</tr>'
+        )
     return "\n".join(rows)
 
 
-def build_supply_chain_rows(analyses: list[dict]) -> str:
+def build_supply_chain_rows(analyses: list) -> str:
     rows = []
     for a in analyses:
-        rn = a["region_name"]
-        rid = a["region_id"]
-        cc = rid.split("_")[0]
-        bg = ' style="background:#fff5f5;"' if a.get("risk_total") == "Høy" else ""
-        rows.append(f"""<tr{bg}>
-          <td><span class="region-name">{rn.split("–")[-1].strip() if "–" in rn else rn}</span>
-              <span class="region-country">{cc}</span></td>
-          <td>{risk_pill(a.get("risk_temp","Lav"))}</td>
-          <td>{risk_pill(a.get("risk_precip","Lav"))}</td>
-          <td>{risk_pill(a.get("risk_transport","Lav"))}</td>
-          <td>{risk_pill(a.get("risk_production","Lav"))}</td>
-          <td>{risk_pill(a.get("risk_total","Lav"))}</td>
-        </tr>""")
+        rn    = a["region_name"]
+        cc    = a["region_id"].split("_")[0]
+        bg    = ' style="background:#fff5f5;"' if a.get("risk_total") == "Høy" else ""
+        short = rn.split("–")[-1].strip() if "–" in rn else rn
+        rows.append(
+            f'<tr{bg}>'
+            f'<td><span class="region-name">{short}</span><span class="region-country">{cc}</span></td>'
+            f'<td>{risk_pill(a.get("risk_temp","Lav"))}</td>'
+            f'<td>{risk_pill(a.get("risk_precip","Lav"))}</td>'
+            f'<td>{risk_pill(a.get("risk_transport","Lav"))}</td>'
+            f'<td>{risk_pill(a.get("risk_production","Lav"))}</td>'
+            f'<td>{risk_pill(a.get("risk_total","Lav"))}</td>'
+            f'</tr>'
+        )
     return "\n".join(rows)
 
 
-def build_trend_rows(analyses: list[dict]) -> str:
+def build_sparkline(history: list) -> str:
+    """Build a small CSS bar chart from risk history (last 4 weeks)."""
+    if not history:
+        return '<div class="sparkbar-wrap"><span style="font-size:10px;color:var(--muted);">Baseline</span></div>'
+    bars = []
+    max_weeks = 4
+    padded = ([None] * (max_weeks - len(history))) + history[-max_weeks:]
+    for h in padded:
+        if h is None:
+            bars.append('<div class="sparkbar sparkbar-neu" style="height:6px;" title="Ingen data"></div>')
+        else:
+            risk   = h.get("risk_total", "Lav")
+            pct    = h.get("precip_anomaly_pct", 0) or 0
+            height = min(28, max(4, int(abs(pct) / 20)))
+            cls    = {"Høy": "sparkbar-high", "Moderat": "sparkbar-mod", "Lav": "sparkbar-low"}.get(risk, "sparkbar-neu")
+            week   = h.get("week", "")
+            bars.append(f'<div class="sparkbar {cls}" style="height:{height}px;" title="Uke {week}: {risk}, nedbør {pct:+.0f}%"></div>')
+    return '<div class="sparkbar-wrap">' + "".join(bars) + "</div>"
+
+
+def build_trend_rows(analyses: list) -> str:
     rows = []
     for a in analyses:
-        rn = a["region_name"]
-        rid = a["region_id"]
-        cc = rid.split("_")[0]
-        trend = a.get("trend_direction", "→")
+        rn      = a["region_name"]
+        cc      = a["region_id"].split("_")[0]
+        trend   = a.get("trend_direction", "→")
         history = a.get("trend_history", [])
-        trend_cls = "trend-up" if trend == "↑" else "trend-down" if trend == "↓" else "trend-flat"
+        trend_cls   = "trend-up" if trend == "↑" else "trend-down" if trend == "↓" else "trend-flat"
         trend_label = {"↑": "↑ Stigende", "↓": "↓ Fallende", "→": "→ Stabil"}.get(trend, "→ Stabil")
-
         n = len(history)
         if n >= 2:
             risks = [h.get("risk_total", "Lav") for h in history]
@@ -391,75 +414,61 @@ def build_trend_rows(analyses: list[dict]) -> str:
                          else "Stabil / lav risiko")
         else:
             consensus = "Baseline (uke 1)"
-
         anom_d = a.get("temp_day_anomaly")
-        avvik = f"{anom_d:+.1f}°C vs norm" if anom_d is not None else "Baseline"
-        avc = anom_class(anom_d)
-
-        spark = build_sparkline(history)
-        rows.append(f"""<tr>
-          <td><span class="region-name">{rn.split("–")[-1].strip() if "–" in rn else rn}</span>
-              <span class="region-country">{cc}</span></td>
-          <td><span class="{trend_cls}">{trend_label}</span></td>
-          <td>{spark}</td>
-          <td>{consensus}</td>
-          <td class="{avc}">{avvik}</td>
-        </tr>""")
+        avvik  = f"{anom_d:+.1f}°C vs norm" if anom_d is not None else "Baseline"
+        avc    = anom_class(anom_d)
+        spark  = build_sparkline(history)
+        short  = rn.split("–")[-1].strip() if "–" in rn else rn
+        rows.append(
+            f'<tr>'
+            f'<td><span class="region-name">{short}</span><span class="region-country">{cc}</span></td>'
+            f'<td><span class="{trend_cls}">{trend_label}</span></td>'
+            f'<td>{spark}</td>'
+            f'<td>{consensus}</td>'
+            f'<td class="{avc}">{avvik}</td>'
+            f'</tr>'
+        )
     return "\n".join(rows)
 
 
-# ── Update HTML ───────────────────────────────────────────────────────────────
-
-
-def build_precip_alert(analyses: list[dict]) -> str:
-    """Dynamic alert under precip table — only show if extreme precip detected."""
-    extreme = [a for a in analyses if a.get("precip_anomaly_pct") is not None
+def build_precip_alert(analyses: list) -> str:
+    """Dynamic alert under precip table — show only if extreme precip detected."""
+    extreme = [a for a in analyses
+               if a.get("precip_anomaly_pct") is not None
                and a.get("precip_anomaly_pct") > 150]
     if not extreme:
         return ""
-
-    names = ", ".join(
+    names   = ", ".join(
         a["region_name"].split("–")[-1].strip() if "–" in a["region_name"]
         else a["region_name"] for a in extreme
     )
-    max_pct = max(a["precip_anomaly_pct"] for a in extreme)
+    max_pct  = max(a["precip_anomaly_pct"] for a in extreme)
     severity = "critical" if max_pct > 300 else "warning"
-    icon = "⚠️" if max_pct > 300 else "⚡"
-    max_pct_str = f"{max_pct:+.0f}%"
+    icon     = "⚠️" if max_pct > 300 else "⚡"
+    return (
+        f'<div class="alert-box {severity} mt-2">'
+        f'<strong>{icon} Ekstremt nedbørsavvik registrert</strong> '
+        f'{len(extreme)} region(er) med nedbør over 150% av normalperiode: {names}. '
+        f'Høyeste avvik: {max_pct:+.0f}% vs. klimanormal (WMO 1991–2020).'
+        f'</div>'
+    )
 
-    lines = [
-        f'  <div class="alert-box {severity} mt-2">',
-        f'    <strong>{icon} Ekstremt nedbørsavvik registrert</strong>',
-        f'    {len(extreme)} region(er) med nedbør over 150% av normalperiode: {names}.',
-        f'    Høyeste avvik: {max_pct_str} vs. klimanormal (WMO 1991–2020).',
-        '  </div>',
-    ]
-    return "\n".join(lines)
 
-def build_confidence_grid(analyses: list[dict]) -> str:
-    """
-    Generate confidence cards based on data availability and risk levels.
-    Confidence = Høy if we have actual precip + temp data.
-    Sub-seasonal always = Lav (inherent model uncertainty).
-    """
+def build_confidence_grid(analyses: list) -> str:
+    """Generate confidence cards based on data availability."""
     cards = []
     for a in analyses:
         rn  = a["region_name"].split("–")[-1].strip() if "–" in a["region_name"] else a["region_name"]
-        rid = a["region_id"]
-        cc  = rid.split("_")[0]
-
+        cc  = a["region_id"].split("_")[0]
         has_precip = a.get("precip_actual_mm") is not None
         has_temp   = a.get("temp_day_actual")  is not None
         risk       = a.get("risk_total", "Lav")
-
         if has_precip and has_temp:
-            level = "Høy"
-            cls   = "conf-high"
-            sources = {"IT": "ECMWF reanalyse + Open-Meteo",
-                       "ES": "AEMET + Open-Meteo",
-                       "PT": "IPMA + Open-Meteo",
-                       "MA": "DMN + Open-Meteo"}.get(cc, "Open-Meteo")
-            note = f"{sources}. Temperatur og nedbør bekreftet."
+            level   = "Høy"
+            cls     = "conf-high"
+            sources = {"IT": "ECMWF + Open-Meteo", "ES": "AEMET + Open-Meteo",
+                       "PT": "IPMA + Open-Meteo",  "MA": "DMN + Open-Meteo"}.get(cc, "Open-Meteo")
+            note    = f"{sources}. Temperatur og nedbør bekreftet."
         elif has_precip or has_temp:
             level = "Moderat"
             cls   = "conf-mod"
@@ -468,81 +477,93 @@ def build_confidence_grid(analyses: list[dict]) -> str:
             level = "Lav"
             cls   = "conf-low"
             note  = "Manglende data. Basert på klimanormaler alene."
-
         if risk == "Høy":
             note += " Høyrisikoregion — økt overvåking."
-
-        cards.append(f'''    <div class="confidence-card">
-      <div class="confidence-region">{rn} ({cc})</div>
-      <span class="confidence-level {cls}">{level}</span>
-      <div class="confidence-note">{note}</div>
-    </div>''')
-
-    # Always add sub-seasonal card at end
-    cards.append('''    <div class="confidence-card">
-      <div class="confidence-region">Sub-seasonal (uke 3–6)</div>
-      <span class="confidence-level conf-low">Lav</span>
-      <div class="confidence-note">Ensemble-spredning øker markant utover uke 2–3. Kun sannsynlighetstrender — ikke hendelsesprognoser.</div>
-    </div>''')
-
+        cards.append(
+            f'<div class="confidence-card">'
+            f'<div class="confidence-region">{rn} ({cc})</div>'
+            f'<span class="confidence-level {cls}">{level}</span>'
+            f'<div class="confidence-note">{note}</div>'
+            f'</div>'
+        )
+    cards.append(
+        '<div class="confidence-card">'
+        '<div class="confidence-region">Sub-seasonal (uke 3–6)</div>'
+        '<span class="confidence-level conf-low">Lav</span>'
+        '<div class="confidence-note">Ensemble-spredning øker markant utover uke 2–3. Kun sannsynlighetstrender.</div>'
+        '</div>'
+    )
     return '<div class="confidence-grid">\n' + "\n".join(cards) + "\n</div>"
 
-def build_port_alert(analyses: list[dict]) -> str:
-    """
-    Generate port/ferry status summary from transport risk data.
-    Regions with high transport risk → alert.
-    """
+
+def build_port_alert(analyses: list) -> str:
+    """Generate port/ferry status from transport risk data."""
     high_transport = [a for a in analyses if a.get("risk_transport") == "Høy"]
     mod_transport  = [a for a in analyses if a.get("risk_transport") == "Moderat"]
 
     if not high_transport and not mod_transport:
-        return '''  <div class="alert-box success">
-    <strong>✅ Alle transportkorridorer operative</strong>
-    Ingen værbetingede transportrisikoer registrert i dag. Normale forhold ved alle overvåkede havner og fergeoverganger.
-  </div>'''
+        return (
+            '<div class="alert-box success">'
+            '<strong>✅ Alle transportkorridorer operative</strong> '
+            'Ingen værbetingede transportrisikoer registrert. Normale forhold ved alle havner og fergeoverganger.'
+            '</div>'
+        )
 
     affected = high_transport or mod_transport
-    names = ", ".join(
+    names    = ", ".join(
         a["region_name"].split("–")[-1].strip() if "–" in a["region_name"]
         else a["region_name"] for a in affected
     )
-
     severity = "warning" if not high_transport else "critical"
-    icon = "⚡" if not high_transport else "⚠️"
-    level = "Moderat" if not high_transport else "Høy"
+    icon     = "⚡" if not high_transport else "⚠️"
+    level    = "Moderat" if not high_transport else "Høy"
+    return (
+        f'<div class="alert-box {severity}">'
+        f'<strong>{icon} Transportrisiko {level} — regioner berørt: {names}</strong> '
+        f'Transportrisiko basert på nedbørsavvik, veistengninger og havneforhold. '
+        f'Se tabellene under for detaljer per region.'
+        f'</div>'
+    )
 
-    return f'''  <div class="alert-box {severity}">
-    <strong>{icon} Transportrisiko {level} — regioner berørt: {names}</strong>
-    Transportrisiko basert på nedbørsavvik, veistengninger og havneforhold i produksjonsregionene.
-    Se tabellene under for detaljer per region.
-  </div>'''
-def update_html(html: str, analyses: list[dict],
-                week_start: date, week_end: date) -> str:
 
+# =============================================================================
+# REPLACE SECTION HELPER
+# =============================================================================
+
+def replace_section(html: str, start_tag: str, end_tag: str, new_content: str) -> str:
+    pattern = rf"{re.escape(start_tag)}.*?{re.escape(end_tag)}"
+    replacement = f"{start_tag}\n{new_content}\n{end_tag}"
+    new_html, n = re.subn(pattern, replacement, html, flags=re.DOTALL)
+    if n == 0:
+        logger.warning(f"Sentinel ikke funnet: {start_tag}")
+    return new_html
+
+
+# =============================================================================
+# UPDATE HTML — calls all build_* functions above
+# =============================================================================
+
+def update_html(html: str, analyses: list, week_start: date, week_end: date) -> str:
     week_num = week_start.isocalendar()[1]
     year     = week_start.year
 
     months_no = ["januar","februar","mars","april","mai","juni",
                  "juli","august","september","oktober","november","desember"]
-    updated_str = f"Uke {week_num}, {year}"
-    data_str    = f"{date.today().day}. {months_no[date.today().month-1]} {date.today().year}"
+    data_str  = f"{date.today().day}. {months_no[date.today().month-1]} {date.today().year}"
 
-    cet = timezone(timedelta(hours=1))
+    cet     = timezone(timedelta(hours=1))
     now_cet = datetime.now(cet)
     time_str = now_cet.strftime("%H:%M")
     last_updated_full = f"Uke {week_num}, {year} &nbsp;·&nbsp; Oppdatert {data_str} kl. {time_str} CET"
 
-    # Simple text replacements
+    updated_str = f"Uke {week_num}, {year}"
     html = re.sub(r"Uke \d+, \d{4}", updated_str, html)
     html = re.sub(r"Rapport nr\. \d+/\d{4}", f"Rapport nr. {week_num}/{year}", html)
 
-    def replace_section(html, start_tag, end_tag, new_content):
-        pattern = rf"{re.escape(start_tag)}.*?{re.escape(end_tag)}"
-        replacement = f"{start_tag}\n{new_content}\n{end_tag}"
-        new_html, n = re.subn(pattern, replacement, html, flags=re.DOTALL)
-        if n == 0:
-            logger.warning(f"Sentinel not found: {start_tag}")
-        return new_html
+    # ── Last updated ──────────────────────────────────────────────────────────
+    html = replace_section(html,
+        "<!-- DATA:LAST_UPDATED_START -->", "<!-- DATA:LAST_UPDATED_END -->",
+        last_updated_full)
 
     # ── Table rows ────────────────────────────────────────────────────────────
     html = replace_section(html,
@@ -565,58 +586,48 @@ def update_html(html: str, analyses: list[dict],
         "<!-- DATA:TREND_ROWS_START -->", "<!-- DATA:TREND_ROWS_END -->",
         build_trend_rows(analyses))
 
-    # ── Last updated ──────────────────────────────────────────────────────────
-    html = replace_section(html,
-        "<!-- DATA:LAST_UPDATED_START -->", "<!-- DATA:LAST_UPDATED_END -->",
-        last_updated_full)
-
-    # ── KPI counts + sub-texts ────────────────────────────────────────────────
+    # ── KPI counts ────────────────────────────────────────────────────────────
     high = sum(1 for a in analyses if a.get("risk_total") == "Høy")
     mod  = sum(1 for a in analyses if a.get("risk_total") == "Moderat")
     low  = sum(1 for a in analyses if a.get("risk_total") == "Lav")
 
     def repl_kpi(h, sentinel, value):
-        return re.sub(rf"<!-- KPI:{sentinel} -->[^<]*",
-                      f"<!-- KPI:{sentinel} -->{value}", h)
+        return re.sub(
+            rf"<!-- KPI:{sentinel} -->[^<]*",
+            f"<!-- KPI:{sentinel} -->{value}", h
+        )
 
     html = repl_kpi(html, "HIGH_COUNT", str(high))
     html = repl_kpi(html, "MOD_COUNT",  str(mod))
     html = repl_kpi(html, "LOW_COUNT",  str(low))
 
-    # ── KPI sub-texts (region name lists) ─────────────────────────────────────
     html = replace_section(html,
         "<!-- KPI:HIGH_SUB_START -->", "<!-- KPI:HIGH_SUB_END -->",
         build_kpi_sub(analyses, "Høy"))
-
     html = replace_section(html,
         "<!-- KPI:MOD_SUB_START -->", "<!-- KPI:MOD_SUB_END -->",
         build_kpi_sub(analyses, "Moderat"))
-
     html = replace_section(html,
         "<!-- KPI:LOW_SUB_START -->", "<!-- KPI:LOW_SUB_END -->",
         build_kpi_sub(analyses, "Lav"))
 
-    # ── Alert box ─────────────────────────────────────────────────────────────
+    # ── Alert boxes ───────────────────────────────────────────────────────────
     html = replace_section(html,
         "<!-- DATA:ALERT_BOX_START -->", "<!-- DATA:ALERT_BOX_END -->",
         build_alert_box(analyses, week_num, year))
 
-    # ── Supply chain observation cards ────────────────────────────────────────
     html = replace_section(html,
         "<!-- DATA:SC_CARDS_START -->", "<!-- DATA:SC_CARDS_END -->",
         build_sc_observation_cards(analyses))
 
-    # ── Precip alert ─────────────────────────────────────────────────────────
     html = replace_section(html,
         "<!-- DATA:PRECIP_ALERT_START -->", "<!-- DATA:PRECIP_ALERT_END -->",
         build_precip_alert(analyses))
 
-    # ── Confidence grid ──────────────────────────────────────────────────────
     html = replace_section(html,
         "<!-- DATA:CONFIDENCE_START -->", "<!-- DATA:CONFIDENCE_END -->",
         build_confidence_grid(analyses))
 
-    # ── Port/ferry alert ──────────────────────────────────────────────────────
     html = replace_section(html,
         "<!-- DATA:PORT_ALERT_START -->", "<!-- DATA:PORT_ALERT_END -->",
         build_port_alert(analyses))
@@ -631,7 +642,9 @@ def update_html(html: str, analyses: list[dict],
     return html
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# =============================================================================
+# MAIN
+# =============================================================================
 
 def main():
     args = parse_args()
@@ -643,9 +656,7 @@ def main():
         config_path="config/regions.yaml",
         use_cache=not args.no_cache,
     )
-
-    analyses = analyze_all(fetched, config_path="config/regions.yaml")
-
+    analyses   = analyze_all(fetched, config_path="config/regions.yaml")
     narratives = generate_all_narratives(analyses)
     logger.info(f"Narrative mode: {narratives['mode_used']}")
 
@@ -657,7 +668,7 @@ def main():
     html = html_path.read_text(encoding="utf-8")
     html = update_html(html, analyses, week_start, week_end)
 
-    logger.info("Henter norske værdata fra met.no...")
+    logger.info("Henter norske vaerdata fra met.no...")
     try:
         norway_data = fetch_all_norway_regions()
         html = inject_norway_into_html(html, norway_data)
@@ -684,15 +695,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-# ── Precip alert box ─────────────────────────────────────────────────────────
-
-
-# ── Confidence grid (dynamic) ─────────────────────────────────────────────────
-
-
-# ── Sparkline bars for trend table ───────────────────────────────────────────
-
-
-# ── Port / ferry alert box ────────────────────────────────────────────────────
