@@ -525,6 +525,188 @@ def build_port_alert(analyses: list) -> str:
         f'</div>'
     )
 
+def build_footer_date(week_num: int, year: int, data_str: str) -> str:
+    """Dynamic footer date string."""
+    return f"Uke {week_num}/{year} · {data_str}"
+
+
+def build_section_labels(week_num: int, year: int, week_start: date, week_end: date) -> dict:
+    """
+    Returns dict of dynamic section label strings.
+    """
+    months_no = ["januar","februar","mars","april","mai","juni",
+                 "juli","august","september","oktober","november","desember"]
+    start_str = f"{week_start.day}. {months_no[week_start.month-1]}"
+    end_str   = f"{week_end.day}. {months_no[week_end.month-1]} {week_end.year}"
+    return {
+        "oversikt": f"Uke {week_num}, {year}",
+        "precip":   f"{start_str} – {end_str}",
+        "change":   f"Rapport nr. {week_num}/{year}",
+    }
+
+
+def build_port_cards(analyses: list) -> str:
+    """
+    Generate port cards dynamically from transport risk data.
+    Each port gets a status badge based on risk level of nearby regions.
+    """
+    # Map ports to their associated production regions
+    PORTS = [
+        {
+            "name": "⚓ Port of Rotterdam",
+            "country": "🇳🇱 Nederland — Primær mottakshavn Nord-Europa",
+            "regions": [],  # Rotterdam not directly tied to a production region
+            "type": "receiving",
+        },
+        {
+            "name": "⚓ Port of Amsterdam",
+            "country": "🇳🇱 Nederland — Mottakshavn",
+            "regions": [],
+            "type": "receiving",
+        },
+        {
+            "name": "⚓ Puerto de Algeciras",
+            "country": "🇪🇸 Cádiz — Primær eksportport Andalusia + Fergehavn Marokko",
+            "regions": ["ES_HUELVA", "ES_SEVILLA"],
+            "type": "export",
+        },
+        {
+            "name": "⚓ Puerto de Valencia",
+            "country": "🇪🇸 Valencia — Eksport Murcia/Levante",
+            "regions": ["ES_MURCIA"],
+            "type": "export",
+        },
+        {
+            "name": "⚓ Puerto de Cartagena",
+            "country": "🇪🇸 Murcia — Regional eksport",
+            "regions": ["ES_MURCIA", "ES_ALMERIA"],
+            "type": "export",
+        },
+        {
+            "name": "⚓ Puerto de Barcelona",
+            "country": "🇪🇸 Katalonia — Kombinert eksport/import",
+            "regions": [],
+            "type": "export",
+        },
+    ]
+
+    # Build risk lookup by region_id
+    risk_map = {a["region_id"]: a.get("risk_transport", "Lav") for a in analyses}
+
+    cards_nl, cards_es = [], []
+    for port in PORTS:
+        # Determine port status from associated regions
+        region_risks = [risk_map.get(r, "Lav") for r in port["regions"]]
+        if "Høy" in region_risks:
+            status = "Forsinkelser"
+            header_cls = "port-warning"
+            pill_cls = "pill-mod"
+        elif "Moderat" in region_risks:
+            status = "Overvåkes"
+            header_cls = "port-warning"
+            pill_cls = "pill-mod"
+        else:
+            status = "Normal"
+            header_cls = "port-ok"
+            pill_cls = "pill-low"
+
+        # Get transport details from highest-risk associated region
+        note = ""
+        for rid in port["regions"]:
+            a = next((x for x in analyses if x["region_id"] == rid), None)
+            if a and a.get("risk_transport") in ("Høy", "Moderat"):
+                pct = a.get("precip_anomaly_pct")
+                if pct and abs(pct) > 50:
+                    rn = a["region_name"].split("–")[-1].strip()
+                    note = f"Nedbørsavvik {pct:+.0f}% i {rn} påvirker tilfartsveier."
+                break
+
+        if not note and status == "Normal":
+            note = "Normale operasjonsforhold."
+
+        card = (
+            f'<div class="port-card">'
+            f'<div class="port-card-header {header_cls}">'
+            f'<div><div class="port-name">{port["name"]}</div>'
+            f'<div class="port-country">{port["country"]}</div></div>'
+            f'<span class="pill {pill_cls}">{status}</span>'
+            f'</div>'
+            f'<div class="port-body">{note}</div>'
+            f'</div>'
+        )
+        if port["country"].startswith("🇳🇱"):
+            cards_nl.append(card)
+        else:
+            cards_es.append(card)
+
+    nl_html = (
+        '<div class="subsection-title">🇳🇱 Nederland — Mottakshavner</div>'
+        '<div class="port-grid">' + "\n".join(cards_nl) + "</div>"
+    ) if cards_nl else ""
+
+    es_html = (
+        '<div class="subsection-title mt-3">🇪🇸 Spania — Eksport- og transithavner</div>'
+        '<div class="port-grid">' + "\n".join(cards_es) + "</div>"
+    ) if cards_es else ""
+
+    return nl_html + "\n" + es_html
+
+
+def build_change_rows(analyses: list, prev_analyses: list = None) -> str:
+    """
+    Generate change table rows comparing current vs previous week.
+    If no prev_analyses, shows current data as baseline.
+    """
+    rows = []
+    for a in analyses:
+        rn    = a["region_name"]
+        cc    = a["region_id"].split("_")[0]
+        short = rn.split("–")[-1].strip() if "–" in rn else rn
+
+        risk_now  = a.get("risk_total", "Lav")
+        td        = a.get("temp_day_anomaly")
+        pct       = a.get("precip_anomaly_pct")
+        conf      = "Høy" if (a.get("precip_actual_mm") and a.get("temp_day_actual")) else "Moderat"
+
+        if prev_analyses:
+            prev = next((p for p in prev_analyses if p["region_id"] == a["region_id"]), None)
+            risk_prev = prev.get("risk_total", "Lav") if prev else risk_now
+            if risk_now == "Høy" and risk_prev != "Høy":
+                row_cls = "change-row-up"
+                bg = ' style="background:#fff5f5;"'
+            elif risk_now == "Lav" and risk_prev == "Høy":
+                row_cls = "change-row-down"
+                bg = ' style="background:#f0fff4;"'
+            else:
+                row_cls = "change-row-same"
+                bg = ""
+            note = f"{'▲ Forverring' if row_cls == 'change-row-up' else '▼ Bedring' if row_cls == 'change-row-down' else 'Stabil'}"
+        else:
+            # Baseline mode
+            row_cls = "change-row-up" if risk_now == "Høy" else "change-row-same"
+            bg = ' style="background:#fff5f5;"' if risk_now == "Høy" else ""
+            note_map = {"Høy": "Høy risiko registrert", "Moderat": "Moderat risiko", "Lav": "Normalt vintersignal"}
+            note = note_map.get(risk_now, "")
+
+        td_str  = f"{td:+.1f}°C"  if td  is not None else "N/A"
+        pct_str = f"{pct:+.0f}%"  if pct is not None else "N/A"
+        td_cls  = anom_class(td)
+        pct_cls = anom_class(pct)
+        conf_cls = "conf-high" if conf == "Høy" else "conf-mod"
+
+        rows.append(
+            f'<tr class="{row_cls}"{bg}>'
+            f'<td><span class="region-name">{short}</span><span class="region-country">{cc}</span></td>'
+            f'<td>{risk_pill(risk_now)}</td>'
+            f'<td class="{td_cls}">{td_str}</td>'
+            f'<td class="{pct_cls}">{pct_str}</td>'
+            f'<td><span class="confidence-level {conf_cls}" style="font-size:10px;">{conf}</span></td>'
+            f'<td style="font-size:11px;text-align:left;">{note}</td>'
+            f'</tr>'
+        )
+    return "\n".join(rows)
+
+
 
 # =============================================================================
 # REPLACE SECTION HELPER
@@ -631,6 +813,33 @@ def update_html(html: str, analyses: list, week_start: date, week_end: date) -> 
     html = replace_section(html,
         "<!-- DATA:PORT_ALERT_START -->", "<!-- DATA:PORT_ALERT_END -->",
         build_port_alert(analyses))
+
+    # ── Section labels ────────────────────────────────────────────────────────
+    labels = build_section_labels(week_num, year, week_start, week_end)
+    html = replace_section(html,
+        "<!-- DATA:SECTION_LABEL_OVERSIKT_START -->", "<!-- DATA:SECTION_LABEL_OVERSIKT_END -->",
+        labels["oversikt"])
+    html = replace_section(html,
+        "<!-- DATA:SECTION_LABEL_PRECIP_START -->", "<!-- DATA:SECTION_LABEL_PRECIP_END -->",
+        labels["precip"])
+    html = replace_section(html,
+        "<!-- DATA:SECTION_LABEL_CHANGE_START -->", "<!-- DATA:SECTION_LABEL_CHANGE_END -->",
+        labels["change"])
+
+    # ── Footer date ───────────────────────────────────────────────────────────
+    html = replace_section(html,
+        "<!-- DATA:FOOTER_DATE_START -->", "<!-- DATA:FOOTER_DATE_END -->",
+        build_footer_date(week_num, year, data_str))
+
+    # ── Port cards ────────────────────────────────────────────────────────────
+    html = replace_section(html,
+        "<!-- DATA:PORT_CARDS_START -->", "<!-- DATA:PORT_CARDS_END -->",
+        build_port_cards(analyses))
+
+    # ── Change/endring rows ───────────────────────────────────────────────────
+    html = replace_section(html,
+        "<!-- DATA:CHANGE_ROWS_START -->", "<!-- DATA:CHANGE_ROWS_END -->",
+        build_change_rows(analyses))
 
     # ── News ──────────────────────────────────────────────────────────────────
     articles = fetch_news(max_articles=12)
