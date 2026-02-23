@@ -226,10 +226,15 @@ def analyze_region(record: dict, thresholds: dict) -> dict:
                        if actual_precip is not None and normal_precip_week > 0 else None)
 
     # ── 30-dagers nedbørstrend ────────────────────────────────────────────────
-    precip_30d_daily    = record.get("precip_30d_daily") or []
-    precip_30d_total    = round(sum(d.get("precip_mm", 0) or 0 for d in precip_30d_daily), 1)
-    precip_30d_normal   = get_30d_normal_mm(rid)
-    precip_30d_anom_pct = compute_30d_precip_anomaly_pct(precip_30d_total, precip_30d_normal)
+    precip_30d_daily  = record.get("precip_30d_daily") or []
+    precip_30d_normal = get_30d_normal_mm(rid)
+    # Guard: tom liste = API timet ut, ikke faktisk 0mm — returner None, ikke -100%
+    if precip_30d_daily:
+        precip_30d_total    = round(sum(d.get("precip_mm", 0) or 0 for d in precip_30d_daily), 1)
+        precip_30d_anom_pct = compute_30d_precip_anomaly_pct(precip_30d_total, precip_30d_normal)
+    else:
+        precip_30d_total    = None
+        precip_30d_anom_pct = None
 
     # ── Frost risk ────────────────────────────────────────────────────────────
     frost_thresh = thresholds.get("frost_threshold_c", 2)
@@ -239,7 +244,9 @@ def analyze_region(record: dict, thresholds: dict) -> dict:
     risk_temp   = _classify_temp_risk(anom_day, thr)
     risk_precip = _classify_precip_risk(precip_anom_pct, thresholds.get("precipitation", {}))
     risk_transport, risk_production = _derive_secondary_risks(
-        risk_temp, risk_precip, frost_risk, region
+        risk_temp, risk_precip, frost_risk, region,
+        precip_anom_pct=precip_anom_pct,
+        precip_thr=thresholds.get("precipitation", {}),
     )
     risk_total = _total_risk(risk_temp, risk_precip, risk_transport, risk_production)
 
@@ -336,9 +343,29 @@ def _classify_precip_risk(pct: Optional[float], thr: dict) -> str:
     return RISK_LOW
 
 
+def _classify_transport_risk(pct: Optional[float], thr: dict) -> str:
+    """
+    Transport-risiko drives KUN av nedbørsoverskudd (flom, veistengning).
+    Tørke gir IKKE transportrisiko — bare produksjonsrisiko.
+    """
+    if pct is None:
+        return RISK_LOW
+    high_exc = thr.get("high_excess_pct",  150)
+    mod_exc  = thr.get("moderate_excess_pct", 50)
+    if pct > high_exc:
+        return RISK_HIGH
+    if pct > mod_exc:
+        return RISK_MODERATE
+    return RISK_LOW
+
+
 def _derive_secondary_risks(risk_temp: str, risk_precip: str,
-                             frost_risk: bool, region: dict) -> tuple[str, str]:
-    transport = risk_precip
+                             frost_risk: bool, region: dict,
+                             precip_anom_pct: Optional[float] = None,
+                             precip_thr: dict = None) -> tuple[str, str]:
+    # Transport: kun nedbørsoverskudd trigger risiko — ikke tørke
+    precip_thr  = precip_thr or {}
+    transport   = _classify_transport_risk(precip_anom_pct, precip_thr)
     if frost_risk and risk_temp in (RISK_MODERATE, RISK_HIGH):
         transport = RISK_HIGH
 
