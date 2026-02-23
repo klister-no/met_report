@@ -3,10 +3,17 @@ analyzer.py
 -----------
 Calculates temperature anomalies, precipitation anomalies,
 risk levels and 4-week trend from fetched data + historical records.
+
+New in this version:
+  - 7-day temperature trend: temp_7d_avg, temp_7d_anomaly, temp_7d_daily
+  - 30-day precipitation history: precip_30d_daily, precip_30d_total_mm,
+    precip_30d_normal_mm, precip_30d_anomaly_pct
+  Both come from data_fetcher.py and are passed through to generate_html.py.
 """
 
 import json
 import logging
+import calendar
 import statistics
 from datetime import date
 from pathlib import Path
@@ -32,6 +39,26 @@ TREND_DOWN    = "↓"
 TREND_STABLE  = "→"
 
 
+# ── Klimanormaler for 30-dagers nedbørsberegning ─────────────────────────────
+# mm/mnd WMO 1991–2020. Brukes til å beregne forventet akkumulert
+# nedbør for nøyaktig 30-dagers vindu (tar hensyn til månedsskifte).
+
+PRECIP_MONTHLY_NORMALS_MM = {
+    "IT_PO_VALLEY":      [50, 48, 55, 68, 80, 65, 45, 55, 75,  90,  80,  55],
+    "IT_CENTRAL":        [65, 60, 65, 70, 75, 50, 25, 30, 65,  95, 100,  80],
+    "IT_NAPLES":         [90, 80, 75, 65, 55, 30, 15, 20, 60, 110, 115, 100],
+    "IT_AMALFI":         [120,105, 95, 80, 65, 35, 18, 22, 75, 130, 140, 125],
+    "ES_MURCIA":         [25, 22, 28, 30, 28, 15,  5,  8, 25,  45,  38,  28],
+    "ES_ALMERIA":        [20, 18, 22, 25, 18,  8,  2,  5, 20,  35,  30,  22],
+    "ES_HUELVA":         [65, 55, 48, 40, 28,  8,  2,  3, 25,  65,  75,  70],
+    "ES_SEVILLA":        [60, 52, 45, 38, 25,  6,  1,  2, 22,  60,  70,  65],
+    "ES_MADRID":         [38, 35, 42, 48, 52, 28, 12, 10, 30,  55,  50,  42],
+    "PT_LISBON_ALGARVE": [90, 75, 65, 48, 38, 12,  3,  4, 30,  85, 100,  95],
+    "MA_NORTH":          [70, 60, 55, 40, 22,  5,  1,  2, 18,  55,  75,  72],
+    "MA_SOUTH":          [30, 25, 22, 15,  8,  2,  0,  0,  8,  22,  30,  28],
+}
+
+
 def _load_thresholds(config_path: str = "config/regions.yaml") -> dict:
     with open(config_path, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
@@ -54,6 +81,57 @@ def _safe_sum(values: list) -> Optional[float]:
     return round(sum(clean), 1) if clean else None
 
 
+# ── 7-dagers temperaturberegning ─────────────────────────────────────────────
+
+def compute_7d_temp_avg(temp_7d_daily: list) -> Optional[float]:
+    """7-dagers gjennomsnittstemperatur fra daglige mean-verdier."""
+    means = [d["temp_mean"] for d in temp_7d_daily if d.get("temp_mean") is not None]
+    if not means:
+        return None
+    return round(sum(means) / len(means), 1)
+
+
+def compute_7d_temp_anomaly(temp_7d_avg: Optional[float],
+                             normal_temp: float) -> Optional[float]:
+    """Avvik fra klimanormal for 7-dagers snitt."""
+    if temp_7d_avg is None:
+        return None
+    return round(temp_7d_avg - normal_temp, 1)
+
+
+# ── 30-dagers nedbørsberegning ────────────────────────────────────────────────
+
+def get_30d_normal_mm(region_id: str) -> float:
+    """
+    Beregner forventet akkumulert nedbør for de siste 30 dagene,
+    basert på WMO 1991–2020 månedsnormaler.
+    Tar hensyn til at 30-dagers vindu kan spenne to måneder.
+    """
+    today      = date.today()
+    start_date = today.replace(day=today.day) - __import__('datetime').timedelta(days=29)
+    normals    = PRECIP_MONTHLY_NORMALS_MM.get(region_id)
+
+    if not normals:
+        return 50.0   # generisk fallback
+
+    total = 0.0
+    for i in range(30):
+        d = start_date + __import__('datetime').timedelta(days=i)
+        month_norm      = normals[d.month - 1]
+        days_in_month   = calendar.monthrange(d.year, d.month)[1]
+        total          += month_norm / days_in_month
+
+    return round(total, 1)
+
+
+def compute_30d_precip_anomaly_pct(total_mm: float,
+                                    normal_mm: float) -> Optional[float]:
+    """Prosentavvik for 30-dagers akkumulert nedbør vs. normal."""
+    if normal_mm <= 0:
+        return None
+    return round((total_mm - normal_mm) / normal_mm * 100, 0)
+
+
 # ── Single region analysis ────────────────────────────────────────────────────
 
 def analyze_region(record: dict, thresholds: dict) -> dict:
@@ -67,28 +145,41 @@ def analyze_region(record: dict, thresholds: dict) -> dict:
       "week_start":   str,
       "week_end":     str,
 
-      "temp_day_actual":    float | None,   # mean of daily max (°C)
+      # Dagens observasjon
+      "temp_day_actual":    float | None,
       "temp_day_normal":    float | None,
       "temp_day_anomaly":   float | None,
-      "temp_night_actual":  float | None,   # mean of daily min (°C)
+      "temp_night_actual":  float | None,
       "temp_night_normal":  float | None,
       "temp_night_anomaly": float | None,
       "temp_status":        str,            # 🟢 🟡 🔵
 
-      "precip_actual_mm":   float | None,   # weekly total
-      "precip_normal_mm":   float | None,   # prorated monthly normal
+      # 7-dagers temperaturtrend (ny)
+      "temp_7d_avg":        float | None,
+      "temp_7d_anomaly":    float | None,
+      "temp_7d_daily":      list[dict],     # [{date, temp_max, temp_min, temp_mean}]
+
+      # Ukesnedbør
+      "precip_actual_mm":   float | None,
+      "precip_normal_mm":   float | None,
       "precip_anomaly_mm":  float | None,
       "precip_anomaly_pct": float | None,
 
+      # 30-dagers nedbørstrend (ny)
+      "precip_30d_daily":       list[dict],  # [{date, precip_mm}]
+      "precip_30d_total_mm":    float | None,
+      "precip_30d_normal_mm":   float,
+      "precip_30d_anomaly_pct": float | None,
+
       "frost_risk":         bool,
 
-      "risk_temp":       str,   # Lav / Moderat / Høy
+      "risk_temp":       str,
       "risk_precip":     str,
       "risk_transport":  str,
       "risk_production": str,
       "risk_total":      str,
 
-      "forecast_temp_direction": str,   # ↑ → ↓
+      "forecast_temp_direction": str,
       "forecast_precip_note":    str,
     }
     """
@@ -100,12 +191,11 @@ def analyze_region(record: dict, thresholds: dict) -> dict:
     week_end   = record["week_end"]
     month_idx  = _month_index(week_start)
 
-    normals       = region["normals"]
-    normal_day    = normals["temp_day"][month_idx]
-    normal_night  = normals["temp_night"][month_idx]
-    normal_precip = normals["precip_mm"][month_idx]
-    # Week is ~1/4 of month → prorated normal for 7 days
-    normal_precip_week = round(normal_precip * (7 / 30), 1)
+    normals              = region["normals"]
+    normal_day           = normals["temp_day"][month_idx]
+    normal_night         = normals["temp_night"][month_idx]
+    normal_precip        = normals["precip_mm"][month_idx]
+    normal_precip_week   = round(normal_precip * (7 / 30), 1)
 
     # ── Observed temperatures ─────────────────────────────────────────────────
     actual_day   = _safe_mean(obs.get("temp_max", []))
@@ -113,7 +203,6 @@ def analyze_region(record: dict, thresholds: dict) -> dict:
     anom_day     = round(actual_day   - normal_day,   1) if actual_day   is not None else None
     anom_night   = round(actual_night - normal_night, 1) if actual_night is not None else None
 
-    # Status indicator based on day anomaly
     thr = thresholds.get("temperature", {})
     lo, hi = thr.get("low", [-1.5, 1.5])
     if anom_day is None:
@@ -125,39 +214,45 @@ def analyze_region(record: dict, thresholds: dict) -> dict:
     else:
         temp_status = STATUS_NORMAL
 
-    # ── Precipitation ─────────────────────────────────────────────────────────
-    actual_precip     = _safe_sum(obs.get("precip_sum", []))
-    precip_anom_mm    = round(actual_precip - normal_precip_week, 1) if actual_precip is not None else None
-    precip_anom_pct   = (round((actual_precip / normal_precip_week - 1) * 100, 0)
-                         if actual_precip is not None and normal_precip_week > 0 else None)
+    # ── 7-dagers temperaturtrend ──────────────────────────────────────────────
+    temp_7d_daily  = record.get("temp_7d_daily") or []
+    temp_7d_avg    = compute_7d_temp_avg(temp_7d_daily)
+    temp_7d_anomaly = compute_7d_temp_anomaly(temp_7d_avg, normal_day)
+
+    # ── Precipitation (ukesdata) ───────────────────────────────────────────────
+    actual_precip   = _safe_sum(obs.get("precip_sum", []))
+    precip_anom_mm  = round(actual_precip - normal_precip_week, 1) if actual_precip is not None else None
+    precip_anom_pct = (round((actual_precip / normal_precip_week - 1) * 100, 0)
+                       if actual_precip is not None and normal_precip_week > 0 else None)
+
+    # ── 30-dagers nedbørstrend ────────────────────────────────────────────────
+    precip_30d_daily    = record.get("precip_30d_daily") or []
+    precip_30d_total    = round(sum(d.get("precip_mm", 0) or 0 for d in precip_30d_daily), 1)
+    precip_30d_normal   = get_30d_normal_mm(rid)
+    precip_30d_anom_pct = compute_30d_precip_anomaly_pct(precip_30d_total, precip_30d_normal)
 
     # ── Frost risk ────────────────────────────────────────────────────────────
     frost_thresh = thresholds.get("frost_threshold_c", 2)
     frost_risk   = (actual_night is not None and actual_night < frost_thresh)
 
     # ── Risk classification ───────────────────────────────────────────────────
-    risk_temp = _classify_temp_risk(anom_day, thr)
+    risk_temp   = _classify_temp_risk(anom_day, thr)
     risk_precip = _classify_precip_risk(precip_anom_pct, thresholds.get("precipitation", {}))
     risk_transport, risk_production = _derive_secondary_risks(
         risk_temp, risk_precip, frost_risk, region
     )
     risk_total = _total_risk(risk_temp, risk_precip, risk_transport, risk_production)
 
-    # ── Forecast direction (next 7 days vs. normal) ───────────────────────────
-    fcast_temps = fcast.get("temp_max", [])[:7]
+    # ── Forecast direction ────────────────────────────────────────────────────
+    fcast_temps    = fcast.get("temp_max", [])[:7]
     fcast_day_mean = _safe_mean(fcast_temps)
     if fcast_day_mean is not None:
         fcast_anom = fcast_day_mean - normal_day
-        if fcast_anom > 1.0:
-            fcast_dir = TREND_UP
-        elif fcast_anom < -1.0:
-            fcast_dir = TREND_DOWN
-        else:
-            fcast_dir = TREND_STABLE
+        fcast_dir  = TREND_UP if fcast_anom > 1.0 else TREND_DOWN if fcast_anom < -1.0 else TREND_STABLE
     else:
         fcast_dir = TREND_STABLE
 
-    fcast_precip = fcast.get("precip_sum", [])[:7]
+    fcast_precip       = fcast.get("precip_sum", [])[:7]
     fcast_precip_total = _safe_sum(fcast_precip)
     if fcast_precip_total is not None:
         if fcast_precip_total > normal_precip_week * 2:
@@ -177,6 +272,7 @@ def analyze_region(record: dict, thresholds: dict) -> dict:
         "week_start":   week_start,
         "week_end":     week_end,
 
+        # Dagens observasjon
         "temp_day_actual":    actual_day,
         "temp_day_normal":    normal_day,
         "temp_day_anomaly":   anom_day,
@@ -185,10 +281,22 @@ def analyze_region(record: dict, thresholds: dict) -> dict:
         "temp_night_anomaly": anom_night,
         "temp_status":        temp_status,
 
+        # 7-dagers temperaturtrend
+        "temp_7d_avg":        temp_7d_avg,
+        "temp_7d_anomaly":    temp_7d_anomaly,
+        "temp_7d_daily":      temp_7d_daily,
+
+        # Ukesnedbør
         "precip_actual_mm":   actual_precip,
         "precip_normal_mm":   normal_precip_week,
         "precip_anomaly_mm":  precip_anom_mm,
         "precip_anomaly_pct": precip_anom_pct,
+
+        # 30-dagers nedbørstrend
+        "precip_30d_daily":       precip_30d_daily,
+        "precip_30d_total_mm":    precip_30d_total if precip_30d_daily else None,
+        "precip_30d_normal_mm":   precip_30d_normal,
+        "precip_30d_anomaly_pct": precip_30d_anom_pct,
 
         "frost_risk":         frost_risk,
 
@@ -218,9 +326,9 @@ def _classify_temp_risk(anomaly: Optional[float], thr: dict) -> str:
 def _classify_precip_risk(pct: Optional[float], thr: dict) -> str:
     if pct is None:
         return RISK_LOW
-    high_exc  = thr.get("high_excess_pct", 150)
-    mod_exc   = thr.get("moderate_excess_pct", 50)
-    high_def  = thr.get("high_deficit_pct", -40)
+    high_exc = thr.get("high_excess_pct",  150)
+    mod_exc  = thr.get("moderate_excess_pct", 50)
+    high_def = thr.get("high_deficit_pct",  -40)
     if pct > high_exc:
         return RISK_HIGH
     if pct > mod_exc or pct < high_def:
@@ -230,15 +338,10 @@ def _classify_precip_risk(pct: Optional[float], thr: dict) -> str:
 
 def _derive_secondary_risks(risk_temp: str, risk_precip: str,
                              frost_risk: bool, region: dict) -> tuple[str, str]:
-    """
-    Transport risk: driven by extreme precip (flooding, road closures).
-    Production risk: driven by temp extremes AND precip extremes.
-    """
-    transport  = risk_precip   # flooding = primary transport disruptor
+    transport = risk_precip
     if frost_risk and risk_temp in (RISK_MODERATE, RISK_HIGH):
         transport = RISK_HIGH
 
-    # Production risk = worst of temp and precip, boosted by frost
     prod_levels = [risk_temp, risk_precip]
     if RISK_HIGH in prod_levels:
         production = RISK_HIGH
@@ -272,17 +375,18 @@ def _history_path(region_id: str) -> Path:
 def save_to_history(analyses: list[dict]):
     """Appends current week's analysis to each region's history file."""
     for a in analyses:
-        path = _history_path(a["region_id"])
+        path    = _history_path(a["region_id"])
         history = []
         if path.exists():
             with open(path) as f:
                 history = json.load(f)
 
-        # Avoid duplicate weeks
         existing_weeks = {h["week_start"] for h in history}
         if a["week_start"] not in existing_weeks:
-            history.append(a)
-            # Keep last 12 weeks only
+            # Store lightweight snapshot — ikke lagre 30d daily (stor payload)
+            snapshot = {k: v for k, v in a.items()
+                        if k not in ("precip_30d_daily", "temp_7d_daily")}
+            history.append(snapshot)
             history = sorted(history, key=lambda x: x["week_start"])[-12:]
             with open(path, "w") as f:
                 json.dump(history, f, indent=2)
@@ -299,9 +403,7 @@ def load_trend(region_id: str, weeks: int = 4) -> list[dict]:
 
 
 def compute_trend_direction(region_id: str) -> str:
-    """
-    Returns ↑ / → / ↓ based on temperature anomaly trend over last 4 weeks.
-    """
+    """Returns ↑ / → / ↓ based on temperature anomaly trend over last 4 weeks."""
     history = load_trend(region_id, weeks=4)
     if len(history) < 2:
         return TREND_STABLE
@@ -326,7 +428,6 @@ def analyze_all(fetched_data: dict,
     """
     thresholds = _load_thresholds(config_path)
 
-    # Preserve config order
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
     ordered_ids = [r["id"] for r in cfg["regions"]]
@@ -339,26 +440,30 @@ def analyze_all(fetched_data: dict,
         record = fetched_data[rid]
         try:
             result = analyze_region(record, thresholds)
-            # Attach 4-week trend
             result["trend_direction"] = compute_trend_direction(rid)
             result["trend_history"]   = load_trend(rid, weeks=4)
             analyses.append(result)
-            logger.info(f"  Analyzed: {result['region_name']}  "
-                        f"T={result['temp_day_actual']}°C  "
-                        f"Risk={result['risk_total']}")
+            logger.info(
+                f"  Analyzed: {result['region_name']}  "
+                f"T={result['temp_day_actual']}°C  "
+                f"7d={result['temp_7d_avg']}°C  "
+                f"30d={result['precip_30d_anomaly_pct']:+.0f}%  "
+                f"Risk={result['risk_total']}"
+                if result['precip_30d_anomaly_pct'] is not None
+                else f"  Analyzed: {result['region_name']}  "
+                     f"T={result['temp_day_actual']}°C  "
+                     f"Risk={result['risk_total']}"
+            )
         except Exception as e:
             logger.error(f"Analysis failed for {rid}: {e}", exc_info=True)
 
-    # Persist this week to history
     save_to_history(analyses)
     return analyses
 
 
 if __name__ == "__main__":
-    import json
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s  %(levelname)-8s %(message)s")
-    # Quick smoke test with dummy data
     dummy_record = {
         "region": {
             "id": "ES_HUELVA",
@@ -383,6 +488,19 @@ if __name__ == "__main__":
             "temp_min":  [ 8, 7, 8, 9, 9, 8, 8, 9, 9,10,10, 9, 9, 8],
             "precip_sum":[10, 5, 2, 0, 0, 3, 8, 5, 2, 0, 0, 4, 6, 3],
         },
+        # Simulerte 7d og 30d data
+        "temp_7d_daily": [
+            {"date": "2026-02-16", "temp_max": 13.2, "temp_min": 6.1, "temp_mean": 9.6},
+            {"date": "2026-02-17", "temp_max": 14.0, "temp_min": 6.8, "temp_mean": 10.4},
+            {"date": "2026-02-18", "temp_max": 11.5, "temp_min": 5.2, "temp_mean":  8.3},
+            {"date": "2026-02-19", "temp_max": 12.8, "temp_min": 6.0, "temp_mean":  9.4},
+            {"date": "2026-02-20", "temp_max": 13.5, "temp_min": 6.5, "temp_mean": 10.0},
+            {"date": "2026-02-21", "temp_max": 14.2, "temp_min": 7.0, "temp_mean": 10.6},
+            {"date": "2026-02-22", "temp_max": 15.0, "temp_min": 7.5, "temp_mean": 11.2},
+        ],
+        "precip_30d_daily": [
+            {"date": f"2026-01-{d:02d}", "precip_mm": round(d * 2.5, 1)} for d in range(1, 31)
+        ],
         "week_start": "2026-02-09",
         "week_end":   "2026-02-15",
     }
@@ -392,4 +510,11 @@ if __name__ == "__main__":
         "frost_threshold_c": 2,
     }
     result = analyze_region(dummy_record, thresholds)
-    print(json.dumps(result, indent=2, ensure_ascii=False))
+    print(json.dumps({k: v for k, v in result.items()
+                      if k not in ("precip_30d_daily", "temp_7d_daily")},
+                     indent=2, ensure_ascii=False))
+    print(f"\ntemp_7d_avg:            {result['temp_7d_avg']}")
+    print(f"temp_7d_anomaly:        {result['temp_7d_anomaly']}")
+    print(f"precip_30d_total_mm:    {result['precip_30d_total_mm']}")
+    print(f"precip_30d_normal_mm:   {result['precip_30d_normal_mm']}")
+    print(f"precip_30d_anomaly_pct: {result['precip_30d_anomaly_pct']}")
