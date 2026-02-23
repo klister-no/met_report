@@ -511,11 +511,17 @@ def build_trend_rows(analyses: list) -> str:
         pct_cls        = anom_class(precip_30d_pct)
         precip_spark   = build_precip_30d_sparkline(daily_30d, normal_per_day)
 
-        # Temp-avvik
-        anom_d = a.get("temp_7d_anomaly") or a.get("temp_day_anomaly")
-        avvik  = f"{anom_d:+.1f}°C (7d)" if a.get("temp_7d_anomaly") is not None else (
-                 f"{anom_d:+.1f}°C" if anom_d is not None else "Baseline")
-        avc    = anom_class(anom_d)
+        # Temp-avvik — bruk eksplisitt None-sjekk, ikke 'or' (0.0 er gyldig verdi)
+        t7_anom  = a.get("temp_7d_anomaly")
+        t1_anom  = a.get("temp_day_anomaly")
+        anom_d   = t7_anom if t7_anom is not None else t1_anom
+        if t7_anom is not None:
+            avvik = f"{t7_anom:+.1f}°C (7d)"
+        elif t1_anom is not None:
+            avvik = f"{t1_anom:+.1f}°C"
+        else:
+            avvik = "Baseline"
+        avc = anom_class(anom_d)
 
         short = rn.split("–")[-1].strip() if "–" in rn else rn
         rows.append(
