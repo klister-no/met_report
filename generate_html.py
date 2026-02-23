@@ -1017,6 +1017,9 @@ def update_html(html: str, analyses: list, week_start: date, week_end: date) -> 
         "<!-- DATA:SECTION_LABEL_OVERSIKT_START -->", "<!-- DATA:SECTION_LABEL_OVERSIKT_END -->",
         labels["oversikt"])
     html = replace_section(html,
+        "<!-- DATA:SECTION_LABEL_TEMP_START -->", "<!-- DATA:SECTION_LABEL_TEMP_END -->",
+        labels["oversikt"])   # samme verdi: "Uke X, YYYY"
+    html = replace_section(html,
         "<!-- DATA:SECTION_LABEL_PRECIP_START -->", "<!-- DATA:SECTION_LABEL_PRECIP_END -->",
         labels["precip"])
     html = replace_section(html,
