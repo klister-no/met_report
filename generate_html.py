@@ -294,7 +294,31 @@ def build_overview_rows(analyses: list) -> str:
     return "\n".join(rows)
 
 
+def build_temp_sparkline(daily: list) -> str:
+    """7-søylers CSS-sparkline for daglig temperatur. Rød=varm, blå=kald."""
+    if not daily:
+        return '<div class="sparkbar-wrap"><span style="font-size:10px;color:#aaa;">—</span></div>'
+    bars = []
+    for d in daily[-7:]:
+        mean = d.get("temp_mean")
+        if mean is None:
+            bars.append('<div class="sparkbar sparkbar-neu" style="height:6px;" title="Ingen data"></div>')
+        else:
+            height = min(28, max(8, int(abs(mean) * 1.5)))
+            cls = ("sparkbar-high" if mean > 15
+                   else "sparkbar-mod" if mean > 5
+                   else "sparkbar-cool" if mean > 0
+                   else "sparkbar-frost")
+            date_str = d.get("date", "")
+            bars.append(f'<div class="sparkbar {cls}" style="height:{height}px;" title="{date_str}: {mean:.1f}°C"></div>')
+    return '<div class="sparkbar-wrap">' + "".join(bars) + "</div>"
+
+
 def build_temp_rows(analyses: list) -> str:
+    """
+    Temperatur-tabell med to tidsnivåer:
+    Dagens obs (dag/natt) + 7-dagers snitt/avvik/sparkline.
+    """
     rows = []
     for a in analyses:
         rn  = a["region_name"]
@@ -305,6 +329,11 @@ def build_temp_rows(analyses: list) -> str:
         na  = a.get("temp_night_actual")
         nn  = a.get("temp_night_normal")
         nd  = a.get("temp_night_anomaly")
+        t7  = a.get("temp_7d_avg")
+        t7d = a.get("temp_7d_anomaly")
+        t7_str  = f"{t7:.1f}°C"   if t7  is not None else "—"
+        t7d_str = f"{t7d:+.1f}°C" if t7d is not None else "—"
+        t7_spark = build_temp_sparkline(a.get("temp_7d_daily", []))
         status = a.get("temp_status", "🟢")
         short  = rn.split("–")[-1].strip() if "–" in rn else rn
         rows.append(
@@ -316,6 +345,9 @@ def build_temp_rows(analyses: list) -> str:
             f'<td class="mono">{fmt_range(na)}</td>'
             f'<td class="mono">{fmt_range(nn)}</td>'
             f'<td class="{anom_class(nd)}">{fmt(nd)}</td>'
+            f'<td class="mono">{t7_str}</td>'
+            f'<td class="{anom_class(t7d)}">{t7d_str}</td>'
+            f'<td>{t7_spark}</td>'
             f'<td>{status_icon(status)}</td>'
             f'</tr>'
         )
@@ -377,8 +409,58 @@ def build_supply_chain_rows(analyses: list) -> str:
     return "\n".join(rows)
 
 
+def build_precip_30d_sparkline(daily_30d: list, normal_mm_per_day: float) -> str:
+    """
+    30 daglige søyler med nedbør (mm) + horisontal normallinje.
+    Søylefarger: Blå = normal, Oransje = 1.5-3x normal, Rød = >3x normal, Grå = tørr.
+    Normallinje som CSS border-top.
+    """
+    if not daily_30d:
+        return '<div class="sparkbar-wrap"><span style="font-size:10px;color:#aaa;">Ingen 30d-data</span></div>'
+
+    max_precip = max((d.get("precip_mm", 0) or 0) for d in daily_30d)
+    if max_precip == 0:
+        max_precip = normal_mm_per_day * 3 or 5.0
+
+    # Scale: max bar = 32px
+    scale = 32.0 / max(max_precip, 0.1)
+    normal_height = min(32, max(2, int(normal_mm_per_day * scale)))
+
+    bars = []
+    for d in daily_30d[-30:]:
+        p = d.get("precip_mm", 0) or 0
+        height = max(2, int(p * scale))
+        date_str = d.get("date", "")
+        ratio = p / normal_mm_per_day if normal_mm_per_day > 0 else 0
+
+        if p < 0.5:
+            cls = "sparkbar-dry"
+        elif ratio > 3:
+            cls = "sparkbar-extreme"
+        elif ratio > 1.5:
+            cls = "sparkbar-wet"
+        else:
+            cls = "sparkbar-normal"
+
+        bars.append(
+            f'<div class="sparkbar {cls}" '
+            f'style="height:{height}px;" '
+            f'title="{date_str}: {p:.1f}mm (norm {normal_mm_per_day:.1f}mm/dag)"></div>'
+        )
+
+    bars_html = "".join(bars)
+    # Wrapper with normallinje as pseudo-element via inline style
+    return (
+        f'<div class="sparkbar-wrap sparkbar-precip" '
+        f'style="--normal-h:{normal_height}px;" '
+        f'title="Normallinje: {normal_mm_per_day:.1f}mm/dag">'
+        f'{bars_html}'
+        f'</div>'
+    )
+
+
 def build_sparkline(history: list) -> str:
-    """Build a small CSS bar chart from risk history (last 4 weeks)."""
+    """Fallback 4-ukers risikohistorikk sparkline (brukes i trend-tabell)."""
     if not history:
         return '<div class="sparkbar-wrap"><span style="font-size:10px;color:var(--muted);">Baseline</span></div>'
     bars = []
@@ -398,6 +480,10 @@ def build_sparkline(history: list) -> str:
 
 
 def build_trend_rows(analyses: list) -> str:
+    """
+    Trendlinje-tabell. Nedbørs-kolonnen viser nå 30-dagers daglige søyler
+    med normallinje — én graf per region.
+    """
     rows = []
     for a in analyses:
         rn      = a["region_name"]
@@ -406,6 +492,7 @@ def build_trend_rows(analyses: list) -> str:
         history = a.get("trend_history", [])
         trend_cls   = "trend-up" if trend == "↑" else "trend-down" if trend == "↓" else "trend-flat"
         trend_label = {"↑": "↑ Stigende", "↓": "↓ Fallende", "→": "→ Stabil"}.get(trend, "→ Stabil")
+
         n = len(history)
         if n >= 2:
             risks = [h.get("risk_total", "Lav") for h in history]
@@ -414,16 +501,29 @@ def build_trend_rows(analyses: list) -> str:
                          else "Stabil / lav risiko")
         else:
             consensus = "Baseline (uke 1)"
-        anom_d = a.get("temp_day_anomaly")
-        avvik  = f"{anom_d:+.1f}°C vs norm" if anom_d is not None else "Baseline"
+
+        # 30-dagers nedbørsgraf
+        daily_30d      = a.get("precip_30d_daily", [])
+        normal_30d_tot = a.get("precip_30d_normal_mm", 60.0)
+        normal_per_day = round(normal_30d_tot / 30, 2) if normal_30d_tot else 2.0
+        precip_30d_pct = a.get("precip_30d_anomaly_pct")
+        pct_label      = f"{precip_30d_pct:+.0f}% (30d)" if precip_30d_pct is not None else "—"
+        pct_cls        = anom_class(precip_30d_pct)
+        precip_spark   = build_precip_30d_sparkline(daily_30d, normal_per_day)
+
+        # Temp-avvik
+        anom_d = a.get("temp_7d_anomaly") or a.get("temp_day_anomaly")
+        avvik  = f"{anom_d:+.1f}°C (7d)" if a.get("temp_7d_anomaly") is not None else (
+                 f"{anom_d:+.1f}°C" if anom_d is not None else "Baseline")
         avc    = anom_class(anom_d)
-        spark  = build_sparkline(history)
-        short  = rn.split("–")[-1].strip() if "–" in rn else rn
+
+        short = rn.split("–")[-1].strip() if "–" in rn else rn
         rows.append(
             f'<tr>'
             f'<td><span class="region-name">{short}</span><span class="region-country">{cc}</span></td>'
             f'<td><span class="{trend_cls}">{trend_label}</span></td>'
-            f'<td>{spark}</td>'
+            f'<td>{precip_spark}</td>'
+            f'<td class="{pct_cls}" style="font-size:11px;white-space:nowrap;">{pct_label}</td>'
             f'<td>{consensus}</td>'
             f'<td class="{avc}">{avvik}</td>'
             f'</tr>'
@@ -649,7 +749,63 @@ def build_port_cards(analyses: list) -> str:
         '<div class="port-grid">' + "\n".join(cards_es) + "</div>"
     ) if cards_es else ""
 
-    return nl_html + "\n" + es_html
+    # ── Dynamisk fergekort Tanger Med–Algeciras ───────────────────────────────
+    huelva  = next((x for x in analyses if x["region_id"] == "ES_HUELVA"),  None)
+    sevilla = next((x for x in analyses if x["region_id"] == "ES_SEVILLA"), None)
+    ma_north = next((x for x in analyses if x["region_id"] == "MA_NORTH"),  None)
+
+    ferry_risks = [
+        x.get("risk_transport", "Lav") for x in [huelva, sevilla, ma_north] if x
+    ]
+    ferry_precip_pcts = [
+        x.get("precip_anomaly_pct") for x in [huelva, sevilla] if x and x.get("precip_anomaly_pct")
+    ]
+    max_pct = max(ferry_precip_pcts) if ferry_precip_pcts else None
+
+    if "Høy" in ferry_risks and max_pct and max_pct > 200:
+        ferry_status   = "Kraftig redusert"
+        ferry_cls      = "port-critical"
+        ferry_pill     = "pill-high"
+        ferry_pct_str  = f"⚠️ {max_pct:+.0f}% nedbørsavvik i tilfartsområdet"
+        ferry_note     = (f"Ekstremnedbør i Huelva/Sevilla-regionen ({max_pct:+.0f}% vs norm) "
+                          f"påvirker A-7/AP-7 tilfartsveier til Algeciras. "
+                          f"Forventet redusert frekvens Tanger Med ↔ Algeciras.")
+    elif "Høy" in ferry_risks:
+        ferry_status  = "Forsinkelser"
+        ferry_cls     = "port-warning"
+        ferry_pill    = "pill-mod"
+        ferry_pct_str = f"Transportrisiko Høy i tilfartsregioner"
+        ferry_note    = "Forsinkelser mulig på Tanger Med–Algeciras. Sjekk Baleària/FRS/Trasmediterranea."
+    elif "Moderat" in ferry_risks:
+        ferry_status  = "Overvåkes"
+        ferry_cls     = "port-warning"
+        ferry_pill    = "pill-mod"
+        ferry_pct_str = "Moderat risiko i tilfartsområdet"
+        ferry_note    = "Normale avganger, men Andalusia/Marokko overvåkes for nedbørsutvikling."
+    else:
+        ferry_status  = "Normal drift"
+        ferry_cls     = "port-ok"
+        ferry_pill    = "pill-low"
+        ferry_pct_str = "Ingen værbetingede forstyrrelser"
+        ferry_note    = "Normale avganger Tanger Med ↔ Algeciras/Tarifa. A-7/AP-7 operative."
+
+    ferry_html = (
+        '<div class="subsection-title mt-3">⛴️ Fergeovergangen Marokko — Spania</div>'
+        '<div class="ferry-card">'
+        f'<div class="port-card-header {ferry_cls}">'
+        f'<div><div class="port-name">⛴️ Tanger Med — Algeciras / Tarifa</div>'
+        f'<div class="port-country">🇲🇦→🇪🇸 · Primær Marokko-eksportrute · Baleària · FRS · Trasmediterranea</div>'
+        f'</div><span class="pill {ferry_pill}">{ferry_status}</span></div>'
+        f'<div class="port-body">'
+        f'<strong>{ferry_pct_str}.</strong> {ferry_note}'
+        f'<div class="port-meta" style="margin-top:6px;">'
+        f'<span>🚢 Tanger Med → Algeciras</span>'
+        f'<span>⏱️ ~35 min overfartstid</span>'
+        f'<span>📦 Primær rute: Marokko-grønnsaker til EU</span>'
+        f'</div></div></div>'
+    )
+
+    return nl_html + "\n" + es_html + "\n" + ferry_html
 
 
 def build_change_rows(analyses: list, prev_analyses: list = None) -> str:
