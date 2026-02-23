@@ -496,11 +496,33 @@ def build_trend_rows(analyses: list) -> str:
         n = len(history)
         if n >= 2:
             risks = [h.get("risk_total", "Lav") for h in history]
-            consensus = ("Vedvarende høy risiko" if risks.count("Høy") >= 2
-                         else "Risiko øker" if "Høy" in risks[-2:]
-                         else "Stabil / lav risiko")
+            if risks.count("Høy") >= 2:
+                consensus = "⚠️ Vedvarende høy risiko"
+            elif "Høy" in risks[-2:]:
+                consensus = "↑ Risiko øker"
+            elif risks[-1] == "Lav" and "Høy" in risks[:-1]:
+                consensus = "↓ Risiko avtar"
+            else:
+                consensus = "→ Stabil"
         else:
-            consensus = "Baseline (uke 1)"
+            # Uke 1: vis situasjonsbeskrivelse basert på faktisk data
+            risk_now  = a.get("risk_total", "Lav")
+            pct_30    = a.get("precip_30d_anomaly_pct")
+            t7        = a.get("temp_7d_anomaly")
+            parts     = []
+            if pct_30 is not None:
+                if pct_30 > 150:
+                    parts.append(f"Nedbør +{pct_30:.0f}% (30d)")
+                elif pct_30 < -40:
+                    parts.append(f"Tørke {pct_30:.0f}% (30d)")
+                elif abs(pct_30) > 30:
+                    parts.append(f"Nedbør {pct_30:+.0f}% (30d)")
+            if t7 is not None and abs(t7) > 1.0:
+                parts.append(f"Temp {t7:+.1f}°C (7d)")
+            if parts:
+                consensus = " · ".join(parts)
+            else:
+                consensus = f"Risiko: {risk_now}"
 
         # 30-dagers nedbørsgraf
         daily_30d      = a.get("precip_30d_daily", [])
@@ -561,30 +583,42 @@ def build_precip_alert(analyses: list) -> str:
 
 
 def build_confidence_grid(analyses: list) -> str:
-    """Generate confidence cards based on data availability."""
+    """Datakilde-kort per region — viser faktisk kilde, ikke abstrakt kvalitetsnivå."""
     cards = []
+    SOURCE_MAP = {
+        "IT": "ECMWF + Open-Meteo archive",
+        "ES": "AEMET + Open-Meteo archive",
+        "PT": "IPMA + Open-Meteo archive",
+        "MA": "DMN + Open-Meteo archive",
+    }
     for a in analyses:
         rn  = a["region_name"].split("–")[-1].strip() if "–" in a["region_name"] else a["region_name"]
         cc  = a["region_id"].split("_")[0]
         has_precip = a.get("precip_actual_mm") is not None
         has_temp   = a.get("temp_day_actual")  is not None
+        has_7d     = a.get("temp_7d_avg")      is not None
+        has_30d    = bool(a.get("precip_30d_daily"))
         risk       = a.get("risk_total", "Lav")
+
+        source = SOURCE_MAP.get(cc, "Open-Meteo archive")
+
         if has_precip and has_temp:
-            level   = "Høy"
-            cls     = "conf-high"
-            sources = {"IT": "ECMWF + Open-Meteo", "ES": "AEMET + Open-Meteo",
-                       "PT": "IPMA + Open-Meteo",  "MA": "DMN + Open-Meteo"}.get(cc, "Open-Meteo")
-            note    = f"{sources}. Temperatur og nedbør bekreftet."
+            level = "Bekreftet"
+            cls   = "conf-high"
+            note  = f"{source}. Uke-obs + {'7d temp + ' if has_7d else ''}{'30d nedbør' if has_30d else 'prognose'}."
         elif has_precip or has_temp:
-            level = "Moderat"
+            level = "Delvis"
             cls   = "conf-mod"
-            note  = "Kun én datakilde tilgjengelig. Delvis usikkerhet."
+            missing = "temp" if not has_temp else "nedbør"
+            note  = f"{source}. Mangler {missing}-data denne perioden."
         else:
-            level = "Lav"
+            level = "Ingen obs."
             cls   = "conf-low"
-            note  = "Manglende data. Basert på klimanormaler alene."
+            note  = f"API-timeout. Viser klimanormaler og prognose."
+
         if risk == "Høy":
-            note += " Høyrisikoregion — økt overvåking."
+            note += " ⚠️ Høyrisikoregion."
+
         cards.append(
             f'<div class="confidence-card">'
             f'<div class="confidence-region">{rn} ({cc})</div>'
@@ -592,11 +626,12 @@ def build_confidence_grid(analyses: list) -> str:
             f'<div class="confidence-note">{note}</div>'
             f'</div>'
         )
+
     cards.append(
         '<div class="confidence-card">'
         '<div class="confidence-region">Sub-seasonal (uke 3–6)</div>'
-        '<span class="confidence-level conf-low">Lav</span>'
-        '<div class="confidence-note">Ensemble-spredning øker markant utover uke 2–3. Kun sannsynlighetstrender.</div>'
+        '<span class="confidence-level conf-low">Modellbasert</span>'
+        '<div class="confidence-note">ECMWF ENS + EC46. Ensemble-spredning øker markant utover uke 2–3. Kun sannsynlighetstrender.</div>'
         '</div>'
     )
     return '<div class="confidence-grid">\n' + "\n".join(cards) + "\n</div>"
