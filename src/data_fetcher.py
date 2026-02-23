@@ -33,9 +33,9 @@ OPEN_METEO_URL     = "https://api.open-meteo.com/v1/forecast"
 OPEN_METEO_HIST    = "https://archive-api.open-meteo.com/v1/archive"
 AEMET_BASE_URL     = "https://opendata.aemet.es/openapi/api"
 CACHE_DIR          = Path("data/cache")
-REQUEST_TIMEOUT    = 20   # seconds
-RETRY_ATTEMPTS     = 3
-RETRY_DELAY        = 5    # seconds between retries
+REQUEST_TIMEOUT    = 30   # økt fra 20 — archive-api er treg fra GitHub Actions
+RETRY_ATTEMPTS     = 2    # redusert fra 3 — sparer tid ved timeout (2x30s vs 3x20s)
+RETRY_DELAY        = 3    # sekunder mellom forsøk
 
 
 def _load_regions(config_path: str = "config/regions.yaml") -> list[dict]:
@@ -318,14 +318,19 @@ def fetch_all_regions(config_path: str = "config/regions.yaml",
             cached = _load_cache(rid, week_start)
             if cached:
                 logger.info(f"    Cache hit for {rid}")
-                # Supplement cached record with 7d/30d if missing
-                # (these are not cached — always fresh)
-                if "temp_7d_daily" not in cached or "precip_30d_daily" not in cached:
+                # Supplement cached record with 7d/30d if missing.
+                # Hent begge i én blokk — hopp over hvis begge allerede finnes.
+                missing_7d  = "temp_7d_daily"    not in cached or not cached["temp_7d_daily"]
+                missing_30d = "precip_30d_daily" not in cached or not cached["precip_30d_daily"]
+                if missing_7d or missing_30d:
                     lat = region["lat"]
                     lon = region["lon"]
-                    cached["temp_7d_daily"]    = fetch_7day_temp(lat, lon)
-                    cached["precip_30d_daily"] = fetch_30day_precip(lat, lon)
-                    time.sleep(0.2)
+                    if missing_7d:
+                        cached["temp_7d_daily"]    = fetch_7day_temp(lat, lon)
+                        time.sleep(0.3)
+                    if missing_30d:
+                        cached["precip_30d_daily"] = fetch_30day_precip(lat, lon)
+                        time.sleep(0.3)
                 results[rid] = cached
                 continue
 
