@@ -25,7 +25,7 @@ from ecmwf_fetcher   import fetch_ecmwf_all_regions, EUROPE_REGIONS, NORWAY_REGI
 sys.path.insert(0, str(Path(__file__).parent))
 from generate_norway_html import inject_norway_into_html
 from generate_ecmwf_html  import inject_ecmwf_into_html
-from gibraltar_fetcher    import fetch_gibraltar_conditions, build_gibraltar_html
+from gibraltar_fetcher    import fetch_gibraltar_conditions, build_gibraltar_html, build_gibraltar_bar
 
 logging.basicConfig(
     level=logging.INFO,
@@ -74,9 +74,17 @@ def status_icon(status: str) -> str:
 
 
 def anom_class(val):
+    """Generell avviksklasse — positiv=blå (overskudd), negativ=oransje (underskudd)."""
     if val is None:
         return "anom-neu"
     return "anom-pos" if val > 0 else "anom-neg" if val < 0 else "anom-neu"
+
+
+def temp_anom_class(val):
+    """Temperaturavvik — varm=rød, kald=blå (standard klimakart-konvensjon)."""
+    if val is None:
+        return "anom-neu"
+    return "anom-warm" if val > 0 else "anom-cool" if val < 0 else "anom-neu"
 
 
 def fmt(val, suffix="°C", decimals=1):
@@ -342,12 +350,12 @@ def build_temp_rows(analyses: list) -> str:
             f'<td><span class="region-name">{short}</span><span class="region-country">{cc}</span></td>'
             f'<td class="mono">{fmt_range(da)}</td>'
             f'<td class="mono">{fmt_range(dn)}</td>'
-            f'<td class="{anom_class(dd)}">{fmt(dd)}</td>'
+            f'<td class="{temp_anom_class(dd)}">{fmt(dd)}</td>'
             f'<td class="mono">{fmt_range(na)}</td>'
             f'<td class="mono">{fmt_range(nn)}</td>'
-            f'<td class="{anom_class(nd)}">{fmt(nd)}</td>'
+            f'<td class="{temp_anom_class(nd)}">{fmt(nd)}</td>'
             f'<td class="mono">{t7_str}</td>'
-            f'<td class="{anom_class(t7d)}">{t7d_str}</td>'
+            f'<td class="{temp_anom_class(t7d)}">{t7d_str}</td>'
             f'<td>{t7_spark}</td>'
             f'<td>{status_icon(status)}</td>'
             f'</tr>'
@@ -1048,6 +1056,9 @@ def update_html(html: str, analyses: list, week_start: date, week_end: date) -> 
     html = replace_section(html,
         "<!-- DATA:GIBRALTAR_START -->", "<!-- DATA:GIBRALTAR_END -->",
         build_gibraltar_html(gibraltar_data))
+    html = replace_section(html,
+        "<!-- DATA:GIBRALTAR_BAR_START -->", "<!-- DATA:GIBRALTAR_BAR_END -->",
+        build_gibraltar_bar(gibraltar_data))
 
     # ── News ──────────────────────────────────────────────────────────────────
     articles = fetch_news(max_articles=12)
