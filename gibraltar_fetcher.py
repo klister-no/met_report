@@ -404,3 +404,47 @@ if __name__ == "__main__":
     print(f"\nPrognose-punkter: {len(data['forecast_hours'])}")
     html = build_gibraltar_html(data)
     print(f"HTML generert: {len(html)} tegn")
+
+
+def build_gibraltar_bar(data: dict) -> str:
+    """
+    Kompakt statuslinje for forsiden — én rad med pille, tall og lenke.
+    Vises øverst på oversikts-tabben over KPI-boksene.
+    """
+    alert  = data.get("alert_level", "grå")
+    status = data.get("status", "Ukjent")
+    wind   = data.get("wind_now_kmh")
+    gust   = data.get("wind_gust_now_kmh")
+    wave   = data.get("wave_now_m")
+    reason = data.get("status_reason", "")
+    levante = data.get("levante_risk", False)
+
+    bar_cls  = {"grønn": "gib-bar-green", "gul": "gib-bar-yellow",
+                "rød":   "gib-bar-red",   "grå": "gib-bar-unknown"}.get(alert, "gib-bar-unknown")
+    pill_cls = {"grønn": "pill-low", "gul": "pill-mod",
+                "rød":   "pill-high", "grå": "pill-low"}.get(alert, "pill-low")
+    emoji    = {"grønn": "🟢", "gul": "🟡", "rød": "🔴", "grå": "⚪"}.get(alert, "⚪")
+
+    # Detaljtekst
+    parts = []
+    if wind is not None:
+        parts.append(f"Vind {wind:.0f} km/t")
+    if gust is not None:
+        parts.append(f"kast {gust:.0f}")
+    if wave is not None:
+        parts.append(f"bølger {wave:.1f}m")
+    if levante:
+        parts.append("⚠️ Levante")
+    detail = " · ".join(parts) if parts else "Ingen data"
+
+    return (
+        f'<div class="gib-status-bar {bar_cls}">'
+        f'<span class="gib-bar-icon">⛴️</span>'
+        f'<span class="gib-bar-label">Gibraltar-sundet (Tanger Med ↔ Algeciras)</span>'
+        f'<span class="pill {pill_cls}">{emoji} {status}</span>'
+        f'<span class="gib-bar-detail">{detail}</span>'
+        f'<a href="#" class="gib-bar-link" '
+        f'onclick="document.querySelector(\'[data-tab=ports]\').click();return false;">'
+        f'→ Detaljer</a>'
+        f'</div>'
+    )
