@@ -25,6 +25,7 @@ from ecmwf_fetcher   import fetch_ecmwf_all_regions, EUROPE_REGIONS, NORWAY_REGI
 sys.path.insert(0, str(Path(__file__).parent))
 from generate_norway_html import inject_norway_into_html
 from generate_ecmwf_html  import inject_ecmwf_into_html
+from gibraltar_fetcher    import fetch_gibraltar_conditions, build_gibraltar_html
 
 logging.basicConfig(
     level=logging.INFO,
@@ -1040,6 +1041,13 @@ def update_html(html: str, analyses: list, week_start: date, week_end: date) -> 
     html = replace_section(html,
         "<!-- DATA:CHANGE_ROWS_START -->", "<!-- DATA:CHANGE_ROWS_END -->",
         build_change_rows(analyses))
+
+    # ── Gibraltar-sundet ──────────────────────────────────────────────────────
+    logger.info("Fetching Gibraltar maritime conditions...")
+    gibraltar_data = fetch_gibraltar_conditions()
+    html = replace_section(html,
+        "<!-- DATA:GIBRALTAR_START -->", "<!-- DATA:GIBRALTAR_END -->",
+        build_gibraltar_html(gibraltar_data))
 
     # ── News ──────────────────────────────────────────────────────────────────
     articles = fetch_news(max_articles=12)
