@@ -82,8 +82,8 @@ tbody td:not(:first-child){text-align:center;}
 .trend-up{color:#f97316;font-weight:700;}
 .trend-down{color:#3b82f6;font-weight:700;}
 .trend-flat{color:var(--muted);}
-.anom-pos{color:#ea580c;font-weight:600;font-family:'IBM Plex Mono',monospace;}
-.anom-neg{color:#2563eb;font-weight:600;font-family:'IBM Plex Mono',monospace;}
+.anom-pos{color: #1d4ed8;font-weight:600;font-family:'IBM Plex Mono',monospace;}
+.anom-neg{color: #c2410c;font-weight:600;font-family:'IBM Plex Mono',monospace;}
 .anom-neu{color:var(--slate);font-family:'IBM Plex Mono',monospace;}
 .mono{font-family:'IBM Plex Mono',monospace;font-size:12px;}
 .info-grid{display:grid;grid-template-columns:1fr;gap:1rem;margin:1.5rem 0;}
@@ -319,6 +319,34 @@ tbody td:not(:first-child){text-align:center;}
     .gib-link:hover { background:#dbeafe; }
     .gibraltar-error { padding:1rem 1.25rem; }
     @media (max-width:600px) { .gib-conditions-grid { grid-template-columns:repeat(2,1fr); } }
+  
+    /* Gibraltar kompakt statuslinje */
+    .gib-status-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 1.25rem;
+      margin: 0.75rem 0;
+      border-radius: 8px;
+      font-size: 12px;
+      border-left: 4px solid #9ca3af;
+    }
+    .gib-bar-green  { background: #f0fdf4; border-left-color: #22c55e; }
+    .gib-bar-yellow { background: #fffbeb; border-left-color: #f59e0b; }
+    .gib-bar-red    { background: #fef2f2; border-left-color: #ef4444; }
+    .gib-bar-unknown{ background: #f9fafb; border-left-color: #9ca3af; }
+    .gib-bar-icon   { font-size: 16px; }
+    .gib-bar-label  { font-weight: 600; color: #374151; flex: 1; }
+    .gib-bar-detail { color: #6b7280; font-variant-numeric: tabular-nums; }
+    .gib-bar-link   { color: #2563eb; text-decoration: none; margin-left: auto; font-size: 11px; }
+    .gib-bar-link:hover { text-decoration: underline; }
+  
+    /* Meteorologisk fargekoding — temperatur og nedbør */
+    .anom-pos  { color: #1d4ed8; font-weight: 600; }  /* nedbørsoverskudd = blå */
+    .anom-neg  { color: #c2410c; font-weight: 600; }  /* tørke = oransje/brun */
+    .anom-warm { color: #dc2626; font-weight: 600; }  /* varmere enn normalt = rød */
+    .anom-cool { color: #2563eb; font-weight: 600; }  /* kaldere enn normalt = blå */
+    .anom-neu  { color: #6b7280; }                    /* nær normalt = grå */
   </style>
 </head>
 <body>
@@ -365,7 +393,17 @@ tbody td:not(:first-child){text-align:center;}
     <h2>Markedsoversikt</h2>
     <span class="section-label"><!-- DATA:SECTION_LABEL_OVERSIKT_START -->Uke 8, 2026<!-- DATA:SECTION_LABEL_OVERSIKT_END --></span>
   </div>
-  <div class="kpi-grid">
+  
+<!-- DATA:GIBRALTAR_BAR_START -->
+<div class="gib-status-bar gib-bar-unknown">
+  <span class="gib-bar-icon">⛴️</span>
+  <span class="gib-bar-label">Gibraltar-sundet (Tanger Med ↔ Algeciras)</span>
+  <span class="pill pill-low">Laster...</span>
+  <span class="gib-bar-detail">—</span>
+  <a href="#" class="gib-bar-link" onclick="document.querySelector('[data-tab=ports]').click();return false;">→ Detaljer</a>
+</div>
+<!-- DATA:GIBRALTAR_BAR_END -->
+<div class="kpi-grid">
     <div class="kpi-card risk-high">
       <div class="kpi-label">Regioner — Høy risiko</div>
       <div class="kpi-value"><!-- KPI:HIGH_COUNT -->4</div>
@@ -496,7 +534,7 @@ tbody td:not(:first-child){text-align:center;}
   <div class="table-explainer">
     <strong>🌧️ Hva viser denne tabellen?</strong> Observert nedbør for siste fullstendige uke, sammenlignet med ukesnormal (klimanormal 1991–2020 ÷ 4).
     <ul>
-      <li><strong>Obs. nedbør (mm):</strong> Faktisk målt nedbør hittil i perioden fra 1. januar, i millimeter</li>
+      <li><strong>Obs. nedbør (mm):</strong> Faktisk målt nedbør siste fullstendige uke (mandag–søndag), i millimeter</li>
       <li><strong>Normal feb. (mm/mnd):</strong> Historisk forventet nedbør for en typisk februar — WMO-normaler 1991–2020</li>
       <li><strong>Avvik (mm):</strong> Differanse i millimeter — positivt = mer nedbør enn normalt</li>
       <li><strong>Avvik (%):</strong> Prosentvis avvik. Over +150% = ekstremt vått (rød). +50–150% = over normalt (oransje). Under –20% = tørrere enn normalt (blå)</li>
