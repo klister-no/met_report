@@ -104,26 +104,43 @@ def fetch_open_meteo_week(lat: float, lon: float,
 
 def fetch_open_meteo_forecast(lat: float, lon: float,
                                days: int = 14) -> Optional[dict]:
-    """Fetches daily forecast for next N days."""
+    """
+    Fetches daily forecast for next N days.
+    Inkluderer nå også vindkast (windgusts_10m) og vedvarende vind (windspeed_10m)
+    for produksjonsrisikovurdering.
+    """
     params = {
-        "latitude":        lat,
-        "longitude":       lon,
-        "forecast_days":   days,
-        "daily":           "temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max",
-        "timezone":        "Europe/Madrid",
+        "latitude":          lat,
+        "longitude":         lon,
+        "forecast_days":     days,
+        "daily":             ("temperature_2m_max,temperature_2m_min,"
+                              "precipitation_sum,precipitation_probability_max,"
+                              "windgusts_10m_max,windspeed_10m_max"),
+        "wind_speed_unit":   "ms",   # m/s — konsistent med Gibraltar
+        "timezone":          "Europe/Madrid",
     }
     data = _request_with_retry(OPEN_METEO_URL, params=params)
     if not data or "daily" not in data:
         return None
 
     d = data["daily"]
+
+    # Maks vindkast neste 7 dager — brukes i risikoklassifisering
+    gusts_7d   = [v for v in (d.get("windgusts_10m_max", []) or [])[:7] if v is not None]
+    wind_7d    = [v for v in (d.get("windspeed_10m_max",  []) or [])[:7] if v is not None]
+
     return {
-        "temp_max":          d.get("temperature_2m_max", []),
-        "temp_min":          d.get("temperature_2m_min", []),
-        "precip_sum":        d.get("precipitation_sum", []),
-        "precip_prob_max":   d.get("precipitation_probability_max", []),
-        "dates":             d.get("time", []),
-        "source":            "open-meteo-forecast",
+        "temp_max":            d.get("temperature_2m_max", []),
+        "temp_min":            d.get("temperature_2m_min", []),
+        "precip_sum":          d.get("precipitation_sum", []),
+        "precip_prob_max":     d.get("precipitation_probability_max", []),
+        "windgusts_10m_max":   d.get("windgusts_10m_max", []),
+        "windspeed_10m_max":   d.get("windspeed_10m_max", []),
+        # Aggregerte verdier for enkel bruk i analyzer
+        "wind_gust_max_7d_ms":    round(max(gusts_7d), 1) if gusts_7d else None,
+        "wind_sustained_max_7d_ms": round(max(wind_7d), 1) if wind_7d else None,
+        "dates":               d.get("time", []),
+        "source":              "open-meteo-forecast",
     }
 
 
