@@ -10,12 +10,18 @@ Datakilder (alle gratis, ingen API-nøkkel):
 Gibraltar-sundet koordinater: 35.90°N, -5.60°W
 (Midtpunkt mellom Algeciras og Tanger Med)
 
-Terskler for driftsavbrudd (basert på historiske data fra APBA/Baleària):
-  - Vind > 50 km/t    → forsinkelser sannsynlig
-  - Vind > 70 km/t    → suspensjon sannsynlig
-  - Bølger > 2.0 m    → forsinkelser sannsynlig
-  - Bølger > 3.5 m    → suspensjon sannsynlig
-  (Kilde: Algeciras Bay Port Authority driftsregler)
+Enheter: m/s primært (maritim standard), Beaufort-skala for kontekst.
+
+Terskler for driftsavbrudd (basert på APBA/Baleària driftsregler):
+  Gjennomsnittsvind:
+    - > 13.9 m/s (6 Bf)  → forsinkelser sannsynlig
+    - > 20.8 m/s (8 Bf)  → suspensjon sannsynlig
+  Bølgehøyde:
+    - > 2.0 m            → forsinkelser sannsynlig
+    - > 3.5 m            → suspensjon sannsynlig
+
+Tidligere feil: kode brukte km/t for terskler men viste "97 km/t" (= 27 m/s = Bf 10)
+som virket feil — verdien var matematisk korrekt, men km/t er ikke maritim standard.
 """
 
 import logging
@@ -29,17 +35,39 @@ MARINE_API   = "https://marine-api.open-meteo.com/v1/marine"
 FORECAST_API = "https://api.open-meteo.com/v1/forecast"
 TIMEOUT      = 20
 
-# Midtpunkt av sundet
 GIBRALTAR_LAT = 35.90
 GIBRALTAR_LON = -5.60
 
-# Operasjonelle terskler (km/t og meter)
+# Terskler i m/s (maritim standard)
 THRESHOLDS = {
-    "wind_delay_kmh":    50,
-    "wind_suspend_kmh":  70,
+    "wind_delay_ms":     13.9,   # 6 Beaufort — liten kuling
+    "wind_suspend_ms":   20.8,   # 8 Beaufort — sterk kuling
     "wave_delay_m":       2.0,
     "wave_suspend_m":     3.5,
 }
+
+# Beaufort-skala (m/s grenser og navn)
+BEAUFORT = [
+    (0,   0.3,  "Stille"),
+    (1,   1.6,  "Flau"),
+    (2,   3.4,  "Svak"),
+    (3,   5.5,  "Lett bris"),
+    (4,   8.0,  "Laber bris"),
+    (5,  10.8,  "Frisk bris"),
+    (6,  13.9,  "Liten kuling"),
+    (7,  17.2,  "Stiv kuling"),
+    (8,  20.8,  "Sterk kuling"),
+    (9,  24.5,  "Liten storm"),
+    (10, 28.5,  "Full storm"),
+    (11, 32.7,  "Sterk storm"),
+    (12, 99.0,  "Orkan"),
+]
+
+def _to_beaufort(ms: float) -> tuple[int, str]:
+    for bf, upper, name in BEAUFORT:
+        if ms < upper:
+            return bf, name
+    return 12, "Orkan"
 
 
 def _request(url: str, params: dict) -> Optional[dict]:
@@ -55,30 +83,18 @@ def _request(url: str, params: dict) -> Optional[dict]:
 def fetch_gibraltar_conditions() -> dict:
     """
     Henter nåværende og 48-timers prognosevær for Gibraltar-sundet.
-
-    Returnerer dict med:
-    {
-      "wind_now_kmh":       float | None,   # vindstyrke nå
-      "wind_gust_now_kmh":  float | None,   # vindkast nå
-      "wind_dir_now":       str | None,     # "NV", "Ø" osv.
-      "wave_now_m":         float | None,   # signifikant bølgehøyde nå
-      "wave_max_48h_m":     float | None,   # maks bølger neste 48t
-      "wind_max_48h_kmh":   float | None,   # maks vind neste 48t
-      "forecast_hours":     list[dict],     # time-serie (12 punkter, 4t intervall)
-      "status":             str,            # "Normal" / "Forsinkelser" / "Suspensjon"
-      "status_reason":      str,            # forklaring på status
-      "alert_level":        str,            # "grønn" / "gul" / "rød"
-      "levante_risk":       bool,           # Levante-vind fra øst (særlig farlig)
-      "fetched_at":         str,            # ISO timestamp
-    }
+    Alle vindverdier i m/s. Beaufort beregnes lokalt.
     """
     result = {
-        "wind_now_kmh":      None,
-        "wind_gust_now_kmh": None,
+        "wind_now_ms":       None,   # gjennomsnittsvind m/s
+        "wind_gust_now_ms":  None,   # vindkast m/s
         "wind_dir_now":      None,
+        "wind_bf_now":       None,   # Beaufort-tall
+        "wind_bf_name":      None,   # Beaufort-navn
         "wave_now_m":        None,
         "wave_max_48h_m":    None,
-        "wind_max_48h_kmh":  None,
+        "wind_max_48h_ms":   None,   # maks gjennomsnittsvind neste 48t
+        "wind_gust_max_48h_ms": None,# maks vindkast neste 48t
         "forecast_hours":    [],
         "status":            "Ukjent",
         "status_reason":     "Ingen data",
@@ -89,28 +105,26 @@ def fetch_gibraltar_conditions() -> dict:
 
     # ── 1. Marine API — bølgehøyde ────────────────────────────────────────────
     marine_data = _request(MARINE_API, {
-        "latitude":  GIBRALTAR_LAT,
-        "longitude": GIBRALTAR_LON,
-        "hourly":    "wave_height,wave_period",
+        "latitude":      GIBRALTAR_LAT,
+        "longitude":     GIBRALTAR_LON,
+        "hourly":        "wave_height,wave_period",
         "forecast_days": 3,
-        "timezone":  "Europe/Madrid",
+        "timezone":      "Europe/Madrid",
     })
-
     wave_hours, wave_heights = [], []
     if marine_data and "hourly" in marine_data:
         wave_hours   = marine_data["hourly"].get("time", [])
         wave_heights = marine_data["hourly"].get("wave_height", [])
 
-    # ── 2. Forecast API — vind ────────────────────────────────────────────────
+    # ── 2. Forecast API — vind i m/s (standard, ingen wind_speed_unit-param) ──
     wind_data = _request(FORECAST_API, {
         "latitude":       GIBRALTAR_LAT,
         "longitude":      GIBRALTAR_LON,
         "hourly":         "windspeed_10m,windgusts_10m,winddirection_10m",
-        "wind_speed_unit": "kmh",
+        "wind_speed_unit": "ms",   # eksplisitt m/s
         "forecast_days":  3,
         "timezone":       "Europe/Madrid",
     })
-
     wind_hours, wind_speeds, wind_gusts, wind_dirs = [], [], [], []
     if wind_data and "hourly" in wind_data:
         wind_hours  = wind_data["hourly"].get("time", [])
@@ -121,7 +135,7 @@ def fetch_gibraltar_conditions() -> dict:
     if not wind_hours and not wave_hours:
         return result
 
-    # ── 3. Finn "nå" (nærmeste time) ─────────────────────────────────────────
+    # ── 3. Finn "nå" ──────────────────────────────────────────────────────────
     now_cet = datetime.now(timezone(timedelta(hours=1)))
     now_str = now_cet.strftime("%Y-%m-%dT%H:00")
 
@@ -136,164 +150,163 @@ def fetch_gibraltar_conditions() -> dict:
     dir_now   = _safe(wind_dirs,   now_wind_idx)
     wave_now  = _safe(wave_heights, now_wave_idx)
 
-    result["wind_now_kmh"]      = wind_now
-    result["wind_gust_now_kmh"] = gust_now
-    result["wave_now_m"]        = wave_now
+    result["wind_now_ms"]      = wind_now
+    result["wind_gust_now_ms"] = gust_now
+    result["wave_now_m"]       = wave_now
 
-    # Vindretning som kompassretning
+    if wind_now is not None:
+        bf, name = _to_beaufort(wind_now)
+        result["wind_bf_now"]  = bf
+        result["wind_bf_name"] = name
+
+    # Vindretning
     if dir_now is not None:
         dirs = ["N","NNØ","NØ","ØNØ","Ø","ØSØ","SØ","SSØ","S","SSV","SV","VSV","V","VNV","NV","NNV"]
         result["wind_dir_now"] = dirs[int((dir_now + 11.25) / 22.5) % 16]
 
     # ── 4. Maks neste 48 timer ────────────────────────────────────────────────
-    h48_wind = wind_speeds[now_wind_idx:now_wind_idx + 48]
-    h48_gust = wind_gusts[now_wind_idx:now_wind_idx + 48]
-    h48_wave = wave_heights[now_wave_idx:now_wave_idx + 48]
+    h48_speed = wind_speeds[now_wind_idx:now_wind_idx + 48]
+    h48_gust  = wind_gusts[now_wind_idx:now_wind_idx + 48]
+    h48_wave  = wave_heights[now_wave_idx:now_wave_idx + 48]
+    h48_dirs  = wind_dirs[now_wind_idx:now_wind_idx + 48]
 
-    result["wind_max_48h_kmh"] = round(max((v for v in h48_gust if v), default=0), 1)
-    result["wave_max_48h_m"]   = round(max((v for v in h48_wave if v), default=0), 1)
+    result["wind_max_48h_ms"]      = round(max((v for v in h48_speed if v), default=0), 1)
+    result["wind_gust_max_48h_ms"] = round(max((v for v in h48_gust  if v), default=0), 1)
+    result["wave_max_48h_m"]       = round(max((v for v in h48_wave  if v), default=0), 1)
 
-    # ── 5. Levante-risiko (Ø-vind, 45°–135°, særlig farlig i sundet) ─────────
-    h48_dirs = wind_dirs[now_wind_idx:now_wind_idx + 48]
+    # ── 5. Levante-risiko ─────────────────────────────────────────────────────
     levante_hours = sum(1 for d in h48_dirs if d is not None and 45 <= d <= 135)
-    result["levante_risk"] = levante_hours >= 6   # ≥6 timer østlig vind
+    result["levante_risk"] = levante_hours >= 6
 
-    # ── 6. 12-punkts tidsserie (4-timers intervall) for grafen ───────────────
-    forecast_pts = []
+    # ── 6. 12-punkts tidsserie (4t intervall) ────────────────────────────────
+    pts = []
     for i in range(0, min(48, len(wind_hours) - now_wind_idx), 4):
-        idx_w = now_wind_idx + i
-        idx_v = now_wave_idx + i
-        t_str = wind_hours[idx_w] if idx_w < len(wind_hours) else ""
-        forecast_pts.append({
-            "time":       t_str[-5:] if t_str else "",   # "HH:MM"
-            "wind_kmh":   _safe(wind_speeds, idx_w),
-            "gust_kmh":   _safe(wind_gusts,  idx_w),
-            "wave_m":     _safe(wave_heights, idx_v),
+        iw = now_wind_idx + i
+        iv = now_wave_idx + i
+        t  = wind_hours[iw][-5:] if iw < len(wind_hours) else ""
+        ws = _safe(wind_speeds, iw)
+        pts.append({
+            "time":    t,
+            "wind_ms": ws,
+            "gust_ms": _safe(wind_gusts, iw),
+            "wave_m":  _safe(wave_heights, iv),
+            "bf":      _to_beaufort(ws)[0] if ws is not None else None,
         })
-    result["forecast_hours"] = forecast_pts
+    result["forecast_hours"] = pts
 
-    # ── 7. Statusklassifisering ───────────────────────────────────────────────
-    max_wind = result["wind_max_48h_kmh"] or 0
-    max_wave = result["wave_max_48h_m"]   or 0
+    # ── 7. Statusklassifisering (basert på gjennomsnittsvind, ikke kast) ─────
+    T        = THRESHOLDS
     cur_wind = wind_now or 0
+    max_wind = result["wind_max_48h_ms"] or 0
     cur_wave = wave_now or 0
+    max_wave = result["wave_max_48h_m"]  or 0
 
-    T = THRESHOLDS
-    if cur_wind >= T["wind_suspend_kmh"] or cur_wave >= T["wave_suspend_m"]:
+    def wind_desc(ms):
+        bf, name = _to_beaufort(ms)
+        return f"{ms:.1f} m/s ({name}, Bf {bf})"
+
+    if cur_wind >= T["wind_suspend_ms"] or cur_wave >= T["wave_suspend_m"]:
         status = "Suspensjon"
         alert  = "rød"
-        reason_parts = []
-        if cur_wind >= T["wind_suspend_kmh"]:
-            reason_parts.append(f"Vind {cur_wind:.0f} km/t")
-        if cur_wave >= T["wave_suspend_m"]:
-            reason_parts.append(f"Bølger {cur_wave:.1f}m")
-        reason = f"Nåværende: {', '.join(reason_parts)} — over suspensjonsgrense"
+        parts  = []
+        if cur_wind >= T["wind_suspend_ms"]: parts.append(f"Vind {wind_desc(cur_wind)}")
+        if cur_wave >= T["wave_suspend_m"]:  parts.append(f"Bølger {cur_wave:.1f}m")
+        reason = f"Nåværende: {', '.join(parts)} — over suspensjonsgrense"
 
-    elif max_wind >= T["wind_suspend_kmh"] or max_wave >= T["wave_suspend_m"]:
+    elif max_wind >= T["wind_suspend_ms"] or max_wave >= T["wave_suspend_m"]:
         status = "Suspensjon ventet"
         alert  = "rød"
-        reason = f"Prognose: vind opptil {max_wind:.0f} km/t, bølger {max_wave:.1f}m neste 48t"
+        reason = f"Prognose: vind opptil {wind_desc(max_wind)}, bølger {max_wave:.1f}m neste 48t"
 
-    elif cur_wind >= T["wind_delay_kmh"] or cur_wave >= T["wave_delay_m"]:
+    elif cur_wind >= T["wind_delay_ms"] or cur_wave >= T["wave_delay_m"]:
         status = "Forsinkelser"
         alert  = "gul"
-        reason_parts = []
-        if cur_wind >= T["wind_delay_kmh"]:
-            reason_parts.append(f"vind {cur_wind:.0f} km/t")
-        if cur_wave >= T["wave_delay_m"]:
-            reason_parts.append(f"bølger {cur_wave:.1f}m")
-        reason = f"Nåværende: {', '.join(reason_parts)}"
+        parts  = []
+        if cur_wind >= T["wind_delay_ms"]: parts.append(f"vind {wind_desc(cur_wind)}")
+        if cur_wave >= T["wave_delay_m"]:  parts.append(f"bølger {cur_wave:.1f}m")
+        reason = f"Nåværende: {', '.join(parts)}"
 
-    elif max_wind >= T["wind_delay_kmh"] or max_wave >= T["wave_delay_m"]:
+    elif max_wind >= T["wind_delay_ms"] or max_wave >= T["wave_delay_m"]:
         status = "Forsinkelser mulig"
         alert  = "gul"
-        reason = f"Prognose: vind opptil {max_wind:.0f} km/t, bølger {max_wave:.1f}m neste 48t"
+        reason = f"Prognose: vind opptil {wind_desc(max_wind)}, bølger {max_wave:.1f}m neste 48t"
 
     else:
         status = "Normal drift"
         alert  = "grønn"
-        reason = f"Vind {cur_wind:.0f} km/t, bølger {cur_wave:.1f}m — innenfor normale driftsgrenser"
+        bf_now, _ = _to_beaufort(cur_wind) if cur_wind else (0, "")
+        reason = f"Vind {cur_wind:.1f} m/s (Bf {bf_now}), bølger {cur_wave:.1f}m — innenfor driftsgrenser"
 
     if result["levante_risk"] and alert == "grønn":
-        alert = "gul"
-        reason += ". Levante (Ø-vind) varsel neste 48t."
+        alert   = "gul"
+        reason += " · Levante (Ø-vind) varslet neste 48t"
 
     result["status"]        = status
     result["status_reason"] = reason
     result["alert_level"]   = alert
 
-    logger.info(f"Gibraltar: {status} | vind={cur_wind}km/t bølger={cur_wave}m | alert={alert}")
+    logger.info(f"Gibraltar: {status} | vind={cur_wind}m/s Bf{result['wind_bf_now']} bølger={cur_wave}m | alert={alert}")
     return result
 
 
 def build_gibraltar_html(data: dict) -> str:
-    """
-    Bygger HTML-blokk for Gibraltar-sundet-seksjonen.
-    Inkluderer nåstatus, 48t prognose og lenker.
-    """
     if not data or data.get("alert_level") == "grå":
         return _build_gibraltar_error()
 
-    alert      = data["alert_level"]
-    status     = data["status"]
-    reason     = data["status_reason"]
-    wind_now   = data["wind_now_kmh"]
-    gust_now   = data["wind_gust_now_kmh"]
-    wind_dir   = data["wind_dir_now"] or "—"
-    wave_now   = data["wave_now_m"]
-    wind_max   = data["wind_max_48h_kmh"]
-    wave_max   = data["wave_max_48h_m"]
-    levante    = data["levante_risk"]
-    pts        = data["forecast_hours"]
+    alert     = data["alert_level"]
+    status    = data["status"]
+    reason    = data["status_reason"]
+    wind_ms   = data["wind_now_ms"]
+    gust_ms   = data["wind_gust_now_ms"]
+    wind_dir  = data["wind_dir_now"] or "—"
+    bf        = data["wind_bf_now"]
+    bf_name   = data["wind_bf_name"] or "—"
+    wave_now  = data["wave_now_m"]
+    wind_max  = data["wind_max_48h_ms"]
+    wave_max  = data["wave_max_48h_m"]
+    levante   = data["levante_risk"]
+    pts       = data["forecast_hours"]
 
-    # Fargeskjema
     colors = {
         "grønn": ("--success", "#166534", "🟢"),
         "gul":   ("--warning", "#92400e", "🟡"),
         "rød":   ("--danger",  "#991b1b", "🔴"),
     }
     color_var, text_color, emoji = colors.get(alert, ("--muted", "#374151", "⚪"))
-
-    # Pill
     pill_cls = {"grønn": "pill-low", "gul": "pill-mod", "rød": "pill-high"}.get(alert, "pill-low")
 
-    # Formater verdier
-    def fv(v, unit="", fmt=".0f"):
-        return f"{v:{fmt}}{unit}" if v is not None else "—"
+    def fms(v):
+        if v is None: return "—"
+        bf_v, _ = _to_beaufort(v)
+        return f"{v:.1f} m/s · Bf {bf_v}"
 
-    wind_str  = fv(wind_now, " km/t")
-    gust_str  = fv(gust_now, " km/t")
-    wave_str  = fv(wave_now, " m", ".1f")
-    wmax_str  = fv(wind_max, " km/t")
-    vmax_str  = fv(wave_max, " m", ".1f")
+    def fwave(v):
+        return f"{v:.1f} m" if v is not None else "—"
 
-    # 48t prognose mini-grafer (vind og bølger)
-    wind_bars = _build_mini_bars(pts, "wind_kmh", 0, 100, "wind")
-    wave_bars = _build_mini_bars(pts, "wave_m",   0, 5,   "wave")
-    time_labels = "".join(
-        f'<div class="gib-time-label">{p["time"]}</div>' for p in pts
-    )
+    wind_str  = fms(wind_ms)
+    gust_str  = fms(gust_ms)
+    wmax_str  = f"{wind_max:.1f} m/s" if wind_max is not None else "—"
+    gmax_str  = f"{data.get('wind_gust_max_48h_ms', 0):.1f} m/s" if data.get('wind_gust_max_48h_ms') else "—"
+    vmax_str  = fwave(wave_max)
+    wave_str  = fwave(wave_now)
+    bf_str    = f"Bf {bf} — {bf_name}" if bf is not None else "—"
+
+    wind_bars = _build_mini_bars(pts, "wind_ms", 0, 30, "wind")
+    wave_bars = _build_mini_bars(pts, "wave_m",  0, 5,  "wave")
+    time_labs = "".join(f'<div class="gib-time-label">{p["time"]}</div>' for p in pts)
 
     levante_badge = (
-        '<span class="gib-badge gib-badge-warn">⚠️ Levante-risiko</span>'
+        '<span class="gib-badge gib-badge-warn">⚠️ Levante-risiko (Ø-vind)</span>'
         if levante else ""
     )
 
-    # Terskelverdier for kontekst
-    thresh_html = (
-        '<div class="gib-thresholds">'
-        '<span>Forsinkelser: >50 km/t eller >2m</span>'
-        '<span>Suspensjon: >70 km/t eller >3.5m</span>'
-        '</div>'
-    )
-
-    html = f"""
+    return f"""
 <div class="gibraltar-section">
-  <div class="gibraltar-header" style="border-left: 4px solid var({color_var}, #22c55e);">
+  <div class="gibraltar-header" style="border-left:4px solid var({color_var},#22c55e);">
     <div class="gib-title-row">
       <div>
         <div class="gib-title">⛴️ Gibraltar-sundet — Tanger Med ↔ Algeciras</div>
-        <div class="gib-subtitle">35°54'N 5°36'V · ~14 km bred · ~35 min overfartstid</div>
+        <div class="gib-subtitle">35°54'N 5°36'V · ~14 km bred · ~35 min overfartstid · ECMWF-modell</div>
       </div>
       <span class="pill {pill_cls}">{emoji} {status}</span>
     </div>
@@ -303,42 +316,45 @@ def build_gibraltar_html(data: dict) -> str:
 
   <div class="gib-conditions-grid">
     <div class="gib-condition-card">
-      <div class="gib-cond-label">Vind nå</div>
+      <div class="gib-cond-label">Gjennomsnittsvind nå</div>
       <div class="gib-cond-value" style="color:{text_color};">{wind_str}</div>
-      <div class="gib-cond-sub">Retning: {wind_dir}</div>
+      <div class="gib-cond-sub">Retning: {wind_dir} · {bf_str}</div>
     </div>
     <div class="gib-condition-card">
       <div class="gib-cond-label">Vindkast nå</div>
       <div class="gib-cond-value" style="color:{text_color};">{gust_str}</div>
-      <div class="gib-cond-sub">Maks 10 min</div>
+      <div class="gib-cond-sub">Maks 3-sek gjennomsnitt (WMO)</div>
     </div>
     <div class="gib-condition-card">
       <div class="gib-cond-label">Bølgehøyde nå</div>
       <div class="gib-cond-value" style="color:{text_color};">{wave_str}</div>
-      <div class="gib-cond-sub">Signifikant Hs</div>
+      <div class="gib-cond-sub">Signifikant Hs (ECMWF WAM)</div>
     </div>
-    <div class="gib-condition-card gib-forecast-card">
+    <div class="gib-condition-card">
       <div class="gib-cond-label">Maks neste 48t</div>
       <div class="gib-cond-value">{wmax_str} / {vmax_str}</div>
-      <div class="gib-cond-sub">Vind / Bølger</div>
+      <div class="gib-cond-sub">Snitt-vind / Bølger · Kast: {gmax_str}</div>
     </div>
   </div>
 
   <div class="gib-forecast">
-    <div class="gib-forecast-title">48-timers prognose</div>
+    <div class="gib-forecast-title">48-timers prognose (gjennomsnittsvind og bølger)</div>
     <div class="gib-chart-row">
-      <div class="gib-chart-label">Vind</div>
+      <div class="gib-chart-label">Vind m/s</div>
       <div class="gib-chart-bars">{wind_bars}</div>
     </div>
     <div class="gib-chart-row">
-      <div class="gib-chart-label">Bølger</div>
+      <div class="gib-chart-label">Bølger m</div>
       <div class="gib-chart-bars">{wave_bars}</div>
     </div>
     <div class="gib-chart-row">
       <div class="gib-chart-label"></div>
-      <div class="gib-chart-bars gib-time-row">{time_labels}</div>
+      <div class="gib-chart-bars gib-time-row">{time_labs}</div>
     </div>
-    {thresh_html}
+    <div class="gib-thresholds">
+      <span>🟡 Forsinkelser: vind &gt;13.9 m/s (Bf 6) eller bølger &gt;2m</span>
+      <span>🔴 Suspensjon: vind &gt;20.8 m/s (Bf 8) eller bølger &gt;3.5m</span>
+    </div>
   </div>
 
   <div class="gib-links">
@@ -353,34 +369,27 @@ def build_gibraltar_html(data: dict) -> str:
   </div>
 </div>"""
 
-    return html
 
-
-def _build_mini_bars(pts: list, key: str, min_val: float, max_val: float, kind: str) -> str:
-    """Bygger 12 søyler for 48t prognose-grafen."""
+def _build_mini_bars(pts, key, min_val, max_val, kind):
+    T = THRESHOLDS
+    delay_t   = T["wind_delay_ms"]   if kind == "wind" else T["wave_delay_m"]
+    suspend_t = T["wind_suspend_ms"] if kind == "wind" else T["wave_suspend_m"]
     bars = []
-    delay_thresh   = THRESHOLDS["wind_delay_kmh"]  if kind == "wind" else THRESHOLDS["wave_delay_m"]
-    suspend_thresh = THRESHOLDS["wind_suspend_kmh"] if kind == "wind" else THRESHOLDS["wave_suspend_m"]
-
     for p in pts:
         v = p.get(key)
         if v is None:
             bars.append('<div class="gib-bar gib-bar-empty" style="height:4px;"></div>')
             continue
         height = max(4, int((v - min_val) / max(max_val - min_val, 1) * 36))
-        if v >= suspend_thresh:
-            cls = "gib-bar-red"
-        elif v >= delay_thresh:
-            cls = "gib-bar-yellow"
-        else:
-            cls = "gib-bar-green"
-        unit = "km/t" if kind == "wind" else "m"
+        cls = ("gib-bar-red" if v >= suspend_t
+               else "gib-bar-yellow" if v >= delay_t
+               else "gib-bar-green")
+        unit = "m/s" if kind == "wind" else "m"
         bars.append(f'<div class="gib-bar {cls}" style="height:{height}px;" title="{v:.1f} {unit}"></div>')
-
     return "".join(bars)
 
 
-def _build_gibraltar_error() -> str:
+def _build_gibraltar_error():
     return """
 <div class="gibraltar-section gibraltar-error">
   <div class="gib-title">⛴️ Gibraltar-sundet — Tanger Med ↔ Algeciras</div>
@@ -394,30 +403,14 @@ def _build_gibraltar_error() -> str:
 </div>"""
 
 
-if __name__ == "__main__":
-    import json, logging
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    data = fetch_gibraltar_conditions()
-    # Print summary without full forecast_hours
-    summary = {k: v for k, v in data.items() if k != "forecast_hours"}
-    print(json.dumps(summary, indent=2, ensure_ascii=False))
-    print(f"\nPrognose-punkter: {len(data['forecast_hours'])}")
-    html = build_gibraltar_html(data)
-    print(f"HTML generert: {len(html)} tegn")
-
-
 def build_gibraltar_bar(data: dict) -> str:
-    """
-    Kompakt statuslinje for forsiden — én rad med pille, tall og lenke.
-    Vises øverst på oversikts-tabben over KPI-boksene.
-    """
-    alert  = data.get("alert_level", "grå")
-    status = data.get("status", "Ukjent")
-    wind   = data.get("wind_now_kmh")
-    gust   = data.get("wind_gust_now_kmh")
-    wave   = data.get("wave_now_m")
-    reason = data.get("status_reason", "")
+    alert   = data.get("alert_level", "grå")
+    status  = data.get("status", "Ukjent")
+    wind_ms = data.get("wind_now_ms")
+    gust_ms = data.get("wind_gust_now_ms")
+    wave    = data.get("wave_now_m")
     levante = data.get("levante_risk", False)
+    bf      = data.get("wind_bf_now")
 
     bar_cls  = {"grønn": "gib-bar-green", "gul": "gib-bar-yellow",
                 "rød":   "gib-bar-red",   "grå": "gib-bar-unknown"}.get(alert, "gib-bar-unknown")
@@ -425,12 +418,11 @@ def build_gibraltar_bar(data: dict) -> str:
                 "rød":   "pill-high", "grå": "pill-low"}.get(alert, "pill-low")
     emoji    = {"grønn": "🟢", "gul": "🟡", "rød": "🔴", "grå": "⚪"}.get(alert, "⚪")
 
-    # Detaljtekst
     parts = []
-    if wind is not None:
-        parts.append(f"Vind {wind:.0f} km/t")
-    if gust is not None:
-        parts.append(f"kast {gust:.0f}")
+    if wind_ms is not None:
+        parts.append(f"Vind {wind_ms:.1f} m/s (Bf {bf})" if bf else f"Vind {wind_ms:.1f} m/s")
+    if gust_ms is not None:
+        parts.append(f"kast {gust_ms:.1f} m/s")
     if wave is not None:
         parts.append(f"bølger {wave:.1f}m")
     if levante:
@@ -440,7 +432,7 @@ def build_gibraltar_bar(data: dict) -> str:
     return (
         f'<div class="gib-status-bar {bar_cls}">'
         f'<span class="gib-bar-icon">⛴️</span>'
-        f'<span class="gib-bar-label">Gibraltar-sundet (Tanger Med ↔ Algeciras)</span>'
+        f'<span class="gib-bar-label">Gibraltar-sundet</span>'
         f'<span class="pill {pill_cls}">{emoji} {status}</span>'
         f'<span class="gib-bar-detail">{detail}</span>'
         f'<a href="#" class="gib-bar-link" '
@@ -448,3 +440,11 @@ def build_gibraltar_bar(data: dict) -> str:
         f'→ Detaljer</a>'
         f'</div>'
     )
+
+
+if __name__ == "__main__":
+    import json, logging
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    data = fetch_gibraltar_conditions()
+    summary = {k: v for k, v in data.items() if k != "forecast_hours"}
+    print(json.dumps(summary, indent=2, ensure_ascii=False))
