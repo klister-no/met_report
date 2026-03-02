@@ -89,6 +89,8 @@ jobs:
           else
             TIMESTAMP=$(TZ="Europe/Oslo" date +'%d.%m.%Y kl. %H:%M')
             git commit -m "🌦️ Klimarisikorapport oppdatert $TIMESTAMP"
+            # Pull --rebase før push for å håndtere samtidige kjøringer
+            git pull --rebase origin main
             git push
           fi
 
