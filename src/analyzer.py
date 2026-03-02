@@ -240,6 +240,13 @@ def analyze_region(record: dict, thresholds: dict) -> dict:
     frost_thresh = thresholds.get("frost_threshold_c", 2)
     frost_risk   = (actual_night is not None and actual_night < frost_thresh)
 
+    # ── Tørkeindikator: kombinert 30d nedbørsunderskudd + varmeavvik ──────────
+    risk_drought = _classify_drought_risk(precip_30d_anom_pct, temp_7d_anomaly)
+
+    # ── Vindrisiko (fra forecast) ─────────────────────────────────────────────
+    fcast_wind_gusts = fcast.get("wind_gust_max_7d_ms")   # injisert av data_fetcher
+    risk_wind        = _classify_wind_risk(fcast_wind_gusts)
+
     # ── Risk classification ───────────────────────────────────────────────────
     risk_temp   = _classify_temp_risk(anom_day, thr)
     risk_precip = _classify_precip_risk(precip_anom_pct, thresholds.get("precipitation", {}))
@@ -247,8 +254,11 @@ def analyze_region(record: dict, thresholds: dict) -> dict:
         risk_temp, risk_precip, frost_risk, region,
         precip_anom_pct=precip_anom_pct,
         precip_thr=thresholds.get("precipitation", {}),
+        risk_drought=risk_drought,
+        risk_wind=risk_wind,
     )
-    risk_total = _total_risk(risk_temp, risk_precip, risk_transport, risk_production)
+    risk_total = _total_risk(risk_temp, risk_precip, risk_transport, risk_production,
+                             risk_drought=risk_drought, risk_wind=risk_wind)
 
     # ── Forecast direction ────────────────────────────────────────────────────
     fcast_temps    = fcast.get("temp_max", [])[:7]
@@ -263,7 +273,7 @@ def analyze_region(record: dict, thresholds: dict) -> dict:
     fcast_precip_total = _safe_sum(fcast_precip)
     if fcast_precip_total is not None:
         if fcast_precip_total > normal_precip_week * 2:
-            fcast_precip_note = "Mye nedbør ventet (>2× normalt)"
+            fcast_precip_note = "⚠️ Kraftig nedbør varslet neste 7 dager (>2× normalt)"
         elif fcast_precip_total > normal_precip_week * 1.3:
             fcast_precip_note = "Mer nedbør enn normalt"
         elif fcast_precip_total < normal_precip_week * 0.5:
@@ -272,6 +282,22 @@ def analyze_region(record: dict, thresholds: dict) -> dict:
             fcast_precip_note = "Nær normalt nedbør"
     else:
         fcast_precip_note = "Ingen data"
+
+    # ── Varsler for kommende ekstremvær ──────────────────────────────────────
+    alerts_7d: list[str] = []
+    if fcast_precip_total is not None and fcast_precip_total > normal_precip_week * 2:
+        alerts_7d.append(f"🌧️ Kraftig nedbør neste 7d ({fcast_precip_total:.0f}mm, >{normal_precip_week*2:.0f}mm normalt)")
+    if fcast_wind_gusts is not None and fcast_wind_gusts > 20.0:
+        alerts_7d.append(f"🌬️ Storm varslet neste 7d (vindkast {fcast_wind_gusts:.1f} m/s)")
+    elif fcast_wind_gusts is not None and fcast_wind_gusts > 15.0:
+        alerts_7d.append(f"💨 Sterk vind varslet neste 7d (kast {fcast_wind_gusts:.1f} m/s)")
+    if risk_drought == RISK_HIGH:
+        alerts_7d.append("🌵 Tørkerisiko: 30d nedbørsunderskudd + varmeavvik kombinert")
+    elif risk_drought == RISK_MODERATE:
+        alerts_7d.append("🌡️ Tidlig tørkesignal: underskudd + varme")
+
+    wind_gust_now_ms = fcast.get("wind_gust_now_ms")   # fra data_fetcher hvis tilgjengelig
+    wind_sustained_ms = fcast.get("wind_sustained_ms")
 
     return {
         "region_id":    rid,
@@ -309,9 +335,19 @@ def analyze_region(record: dict, thresholds: dict) -> dict:
 
         "risk_temp":       risk_temp,
         "risk_precip":     risk_precip,
+        "risk_drought":    risk_drought,
+        "risk_wind":       risk_wind,
         "risk_transport":  risk_transport,
         "risk_production": risk_production,
         "risk_total":      risk_total,
+
+        # Vind (neste 7 dager)
+        "wind_gust_max_7d_ms":  fcast_wind_gusts,
+        "wind_gust_now_ms":     wind_gust_now_ms,
+        "wind_sustained_ms":    wind_sustained_ms,
+
+        # 7-dagers varsler (listen av tekst-strenger)
+        "alerts_7d":            alerts_7d,
 
         "forecast_temp_direction": fcast_dir,
         "forecast_precip_note":    fcast_precip_note,
@@ -331,14 +367,61 @@ def _classify_temp_risk(anomaly: Optional[float], thr: dict) -> str:
 
 
 def _classify_precip_risk(pct: Optional[float], thr: dict) -> str:
+    """
+    Asymmetrisk risikoscoring for nedbør:
+    - Overskudd vektes tyngre enn underskudd (flom, råte, transportstans)
+    - Underskudd gir maks Moderat alene — krever kombinasjon med temperatur for Høy
+    - Tørkekombinasjon håndteres i _classify_drought_risk() + _derive_secondary_risks()
+    """
     if pct is None:
         return RISK_LOW
-    high_exc = thr.get("high_excess_pct",  150)
-    mod_exc  = thr.get("moderate_excess_pct", 50)
-    high_def = thr.get("high_deficit_pct",  -40)
+    high_exc = thr.get("high_excess_pct",      150)   # >150% → Høy
+    mod_exc  = thr.get("moderate_excess_pct",   50)   # >50%  → Moderat
+    mod_def  = thr.get("moderate_deficit_pct", -40)   # <-40% → Moderat (maks alene)
+    # Underskudd kan ikke alene nå Høy — det krever drought-kombinasjon
     if pct > high_exc:
         return RISK_HIGH
-    if pct > mod_exc or pct < high_def:
+    if pct > mod_exc:
+        return RISK_MODERATE
+    if pct < mod_def:
+        return RISK_MODERATE   # tørkeunderskudd — maks Moderat her
+    return RISK_LOW
+
+
+def _classify_drought_risk(precip_30d_pct: Optional[float],
+                            temp_7d_anom: Optional[float]) -> str:
+    """
+    Tørkeindikator: Kombinasjon av 30d nedbørsunderskudd + varmeavvik.
+    Krever BEGGE signaler for å gi Høy.
+
+    Logikk:
+      - 30d underskudd ≥ 40% + temp +1.5°C → Høy tørkerisiko
+      - 30d underskudd ≥ 25% + temp +1.0°C → Moderat tørkerisiko
+      - Kun underskudd (uten varme) → Lav (håndteres av ukesnedbør)
+    """
+    if precip_30d_pct is None or temp_7d_anom is None:
+        return RISK_LOW
+    deficit = precip_30d_pct   # negativt tall = underskudd
+    heat    = temp_7d_anom
+    if deficit <= -40 and heat >= 1.5:
+        return RISK_HIGH
+    if deficit <= -25 and heat >= 1.0:
+        return RISK_MODERATE
+    return RISK_LOW
+
+
+def _classify_wind_risk(wind_gust_max_ms: Optional[float]) -> str:
+    """
+    Vindrisiko basert på maksimalt vindkast (m/s) de neste 7 dagene.
+    Terskler fra agro-meteorologisk standard:
+      - >20 m/s → Høy (mekanisk skade på frukt/grønnsaker)
+      - >15 m/s → Moderat (risiko for skade, særlig blomstringsperiode)
+    """
+    if wind_gust_max_ms is None:
+        return RISK_LOW
+    if wind_gust_max_ms > 20.0:
+        return RISK_HIGH
+    if wind_gust_max_ms > 15.0:
         return RISK_MODERATE
     return RISK_LOW
 
@@ -362,14 +445,25 @@ def _classify_transport_risk(pct: Optional[float], thr: dict) -> str:
 def _derive_secondary_risks(risk_temp: str, risk_precip: str,
                              frost_risk: bool, region: dict,
                              precip_anom_pct: Optional[float] = None,
-                             precip_thr: dict = None) -> tuple[str, str]:
-    # Transport: kun nedbørsoverskudd trigger risiko — ikke tørke
-    precip_thr  = precip_thr or {}
-    transport   = _classify_transport_risk(precip_anom_pct, precip_thr)
+                             precip_thr: dict = None,
+                             risk_drought: str = RISK_LOW,
+                             risk_wind: str = RISK_LOW) -> tuple[str, str]:
+    """
+    Beregner transport- og produksjonsrisiko.
+
+    Transport: KUN nedbørsoverskudd + frost trigger risiko — ikke tørke eller vind.
+    Produksjon: Alle faktorer (temp, nedbør, tørke, vind, frost).
+    """
+    precip_thr = precip_thr or {}
+    transport  = _classify_transport_risk(precip_anom_pct, precip_thr)
     if frost_risk and risk_temp in (RISK_MODERATE, RISK_HIGH):
         transport = RISK_HIGH
 
-    prod_levels = [risk_temp, risk_precip]
+    # Produksjonsrisiko: alle risikofaktorer
+    prod_levels = [risk_temp, risk_precip, risk_drought, risk_wind]
+    if frost_risk:
+        prod_levels.append(RISK_HIGH)
+
     if RISK_HIGH in prod_levels:
         production = RISK_HIGH
     elif RISK_MODERATE in prod_levels:
@@ -377,15 +471,15 @@ def _derive_secondary_risks(risk_temp: str, risk_precip: str,
     else:
         production = RISK_LOW
 
-    if frost_risk:
-        production = RISK_HIGH
-
     return transport, production
 
 
 def _total_risk(risk_temp: str, risk_precip: str,
-                risk_transport: str, risk_production: str) -> str:
-    levels = [risk_temp, risk_precip, risk_transport, risk_production]
+                risk_transport: str, risk_production: str,
+                risk_drought: str = RISK_LOW,
+                risk_wind: str = RISK_LOW) -> str:
+    levels = [risk_temp, risk_precip, risk_transport, risk_production,
+              risk_drought, risk_wind]
     if RISK_HIGH in levels:
         return RISK_HIGH
     if RISK_MODERATE in levels:
