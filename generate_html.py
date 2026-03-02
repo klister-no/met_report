@@ -405,14 +405,33 @@ def build_supply_chain_rows(analyses: list) -> str:
         cc    = a["region_id"].split("_")[0]
         bg    = ' style="background:#fff5f5;"' if a.get("risk_total") == "Høy" else ""
         short = rn.split("–")[-1].strip() if "–" in rn else rn
+
+        # Vind — vis m/s + risikopille
+        gust  = a.get("wind_gust_max_7d_ms")
+        gust_str  = f"💨 {gust:.1f} m/s" if gust is not None else "—"
+        wind_cls  = ("wind-high" if gust and gust > 20
+                     else "wind-mod" if gust and gust > 15
+                     else "")
+
+        # Alerts (fremtidsvarsel)
+        alerts = a.get("alerts_7d", [])
+        alerts_html = (
+            " ".join(f'<span class="alert-badge">{al}</span>' for al in alerts)
+            if alerts else "—"
+        )
+
         rows.append(
             f'<tr{bg}>'
             f'<td><span class="region-name">{short}</span><span class="region-country">{cc}</span></td>'
             f'<td>{risk_pill(a.get("risk_temp","Lav"))}</td>'
             f'<td>{risk_pill(a.get("risk_precip","Lav"))}</td>'
+            f'<td>{risk_pill(a.get("risk_drought","Lav"))}</td>'
+            f'<td><span class="{wind_cls}">{gust_str}</span></td>'
+            f'<td>{risk_pill(a.get("risk_wind","Lav"))}</td>'
             f'<td>{risk_pill(a.get("risk_transport","Lav"))}</td>'
             f'<td>{risk_pill(a.get("risk_production","Lav"))}</td>'
             f'<td>{risk_pill(a.get("risk_total","Lav"))}</td>'
+            f'<td style="font-size:11px;max-width:160px;">{alerts_html}</td>'
             f'</tr>'
         )
     return "\n".join(rows)
@@ -566,6 +585,155 @@ def build_trend_rows(analyses: list) -> str:
             f'</tr>'
         )
     return "\n".join(rows)
+
+
+def _risk_color(level: str) -> str:
+    return {"Høy": "#ef4444", "Moderat": "#f97316", "Lav": "#22c55e"}.get(level, "#6b7280")
+
+
+def _risk_bg(level: str) -> str:
+    return {"Høy": "#fff5f5", "Moderat": "#fff7ed", "Lav": "#f0fdf4"}.get(level, "#f9fafb")
+
+
+def build_dashboard(analyses: list, gibraltar_data: dict | None = None) -> str:
+    """
+    Dashboard-fane: statuskort per region + varselseksjon + Gibraltar-linje.
+    Viser: Risiko, Temp-avvik, Nedbørsavvik, Vind, Tørkeindikator, Varsler.
+    """
+    # ── Globalt sammendrag øverst ─────────────────────────────────────────────
+    n_high = sum(1 for a in analyses if a.get("risk_total") == "Høy")
+    n_mod  = sum(1 for a in analyses if a.get("risk_total") == "Moderat")
+    n_low  = sum(1 for a in analyses if a.get("risk_total") == "Lav")
+
+    if n_high >= 3:
+        summary_cls  = "critical"
+        summary_icon = "🚨"
+        summary_txt  = f"SIMULTANKRISE — {n_high} regioner med høy risiko"
+    elif n_high >= 1:
+        summary_cls  = "warning"
+        summary_icon = "⚠️"
+        summary_txt  = f"{n_high} region(er) med høy risiko"
+    elif n_mod >= 1:
+        summary_cls  = "warning"
+        summary_icon = "⚡"
+        summary_txt  = f"{n_mod} region(er) med moderat risiko"
+    else:
+        summary_cls  = "success"
+        summary_icon = "✅"
+        summary_txt  = "Alle regioner normale"
+
+    summary_bar = (
+        f'<div class="alert-box {summary_cls}" style="margin-bottom:1rem;">'
+        f'<strong>{summary_icon} {summary_txt}</strong> &nbsp;'
+        f'<span style="font-size:12px;">'
+        f'Høy: <b>{n_high}</b> &nbsp; Moderat: <b>{n_mod}</b> &nbsp; Lav: <b>{n_low}</b>'
+        f'</span></div>'
+    )
+
+    # ── Aktive varsler (neste 7 dager) ────────────────────────────────────────
+    all_alerts = []
+    for a in analyses:
+        for al in a.get("alerts_7d", []):
+            rn = a["region_name"].split("–")[-1].strip() if "–" in a["region_name"] else a["region_name"]
+            all_alerts.append((rn, al))
+
+    if all_alerts:
+        alert_items = "".join(
+            f'<div class="dash-alert-item">'
+            f'<span class="dash-alert-region">{rn}</span>'
+            f'<span class="dash-alert-text">{al}</span>'
+            f'</div>'
+            for rn, al in all_alerts
+        )
+        alerts_section = (
+            f'<div class="dash-alerts-panel">'
+            f'<div class="dash-alerts-title">🔔 Varsler neste 7 dager ({len(all_alerts)})</div>'
+            f'{alert_items}'
+            f'</div>'
+        )
+    else:
+        alerts_section = (
+            '<div class="dash-alerts-panel dash-alerts-ok">'
+            '<div class="dash-alerts-title">🔔 Ingen aktive varsler for neste 7 dager</div>'
+            '</div>'
+        )
+
+    # ── Regionkort ────────────────────────────────────────────────────────────
+    FLAG = {"IT": "🇮🇹", "ES": "🇪🇸", "PT": "🇵🇹", "MA": "🇲🇦"}
+    cards_html = []
+
+    for a in analyses:
+        rid   = a["region_id"]
+        cc    = rid.split("_")[0]
+        flag  = FLAG.get(cc, "🌍")
+        rn    = a["region_name"].split("–")[-1].strip() if "–" in a["region_name"] else a["region_name"]
+        risk  = a.get("risk_total", "Lav")
+        color = _risk_color(risk)
+        bg    = _risk_bg(risk)
+
+        # Temperatur
+        t_anom = a.get("temp_7d_anomaly") if a.get("temp_7d_anomaly") is not None else a.get("temp_day_anomaly")
+        t_str  = f"{t_anom:+.1f}°C" if t_anom is not None else "—"
+        t_cls  = "anom-warm" if t_anom and t_anom > 0 else "anom-cool" if t_anom and t_anom < 0 else "anom-neu"
+
+        # Nedbør
+        p_pct = a.get("precip_anomaly_pct")
+        p_30d = a.get("precip_30d_anomaly_pct")
+        p_disp = p_30d if p_30d is not None else p_pct
+        p_lbl  = "(30d)" if p_30d is not None else "(uke)"
+        p_str  = f"{p_disp:+.0f}% {p_lbl}" if p_disp is not None else "—"
+        p_cls  = ("anom-pos" if p_disp and p_disp > 30
+                  else "anom-neg" if p_disp and p_disp < -30
+                  else "anom-neu")
+
+        # Vind
+        gust = a.get("wind_gust_max_7d_ms")
+        g_str = f"{gust:.1f} m/s" if gust is not None else "—"
+        g_cls = ("wind-high" if gust and gust > 20
+                 else "wind-mod" if gust and gust > 15
+                 else "")
+
+        # Tørke
+        drought = a.get("risk_drought", "Lav")
+        d_icon  = "🌵" if drought == "Høy" else "🌡️" if drought == "Moderat" else "✓"
+
+        # Varsler
+        alerts = a.get("alerts_7d", [])
+        al_html = (f'<div class="dash-card-alert">{alerts[0]}</div>' if alerts else "")
+        more    = f'<div class="dash-card-more">+{len(alerts)-1} til</div>' if len(alerts) > 1 else ""
+
+        cards_html.append(
+            f'<div class="dash-card" style="border-top:3px solid {color};background:{bg};">'
+            f'  <div class="dash-card-header">'
+            f'    <span class="dash-card-flag">{flag}</span>'
+            f'    <span class="dash-card-name">{rn}</span>'
+            f'    <span class="dash-card-cc">{cc}</span>'
+            f'    {risk_pill(risk)}'
+            f'  </div>'
+            f'  <div class="dash-card-metrics">'
+            f'    <div class="dash-metric"><span class="dash-metric-label">Temperatur</span>'
+            f'      <span class="dash-metric-val {t_cls}">{t_str}</span></div>'
+            f'    <div class="dash-metric"><span class="dash-metric-label">Nedbør</span>'
+            f'      <span class="dash-metric-val {p_cls}">{p_str}</span></div>'
+            f'    <div class="dash-metric"><span class="dash-metric-label">Vind (7d kast)</span>'
+            f'      <span class="dash-metric-val {g_cls}">{g_str}</span></div>'
+            f'    <div class="dash-metric"><span class="dash-metric-label">Tørke</span>'
+            f'      <span class="dash-metric-val">{d_icon} {drought}</span></div>'
+            f'  </div>'
+            f'  {al_html}{more}'
+            f'</div>'
+        )
+
+    cards_grid = '<div class="dash-cards-grid">\n' + "\n".join(cards_html) + "\n</div>"
+
+    # ── Gibraltar-linje (hvis tilgjengelig) ───────────────────────────────────
+    if gibraltar_data:
+        from gibraltar_fetcher import build_gibraltar_bar
+        gib_bar = build_gibraltar_bar(gibraltar_data)
+    else:
+        gib_bar = ""
+
+    return f"{summary_bar}\n{gib_bar}\n{alerts_section}\n{cards_grid}"
 
 
 def build_precip_alert(analyses: list) -> str:
@@ -1059,6 +1227,11 @@ def update_html(html: str, analyses: list, week_start: date, week_end: date) -> 
     html = replace_section(html,
         "<!-- DATA:GIBRALTAR_BAR_START -->", "<!-- DATA:GIBRALTAR_BAR_END -->",
         build_gibraltar_bar(gibraltar_data))
+
+    # ── Dashboard-fane ────────────────────────────────────────────────────────
+    html = replace_section(html,
+        "<!-- DATA:DASHBOARD_START -->", "<!-- DATA:DASHBOARD_END -->",
+        build_dashboard(analyses, gibraltar_data))
 
     # ── News ──────────────────────────────────────────────────────────────────
     articles = fetch_news(max_articles=12)
