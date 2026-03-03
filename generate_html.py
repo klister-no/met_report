@@ -1260,6 +1260,24 @@ def update_html(html: str, analyses: list, week_start: date, week_end: date) -> 
     return html
 
 
+def build_historical_banner(week_start: date, week_end: date) -> str:
+    """Synlig banner øverst i rapporten når historisk uke vises."""
+    months_no = ["januar","februar","mars","april","mai","juni",
+                 "juli","august","september","oktober","november","desember"]
+    s = f"{week_start.day}. {months_no[week_start.month-1]}"
+    e = f"{week_end.day}. {months_no[week_end.month-1]} {week_end.year}"
+    week_num = week_start.isocalendar()[1]
+    return (
+        f'<div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;'
+        f'padding:0.6rem 1rem;margin:0.75rem 0;font-size:13px;color:#713f12;">'
+        f'<strong>🕐 Historisk rapport — uke {week_num} ({s} – {e})</strong> &nbsp;·&nbsp; '
+        f'Observasjonsdata fra Open-Meteo arkiv. '
+        f'«Forecast»-kolonner viser faktiske arkivverdier for uken etter. '
+        f'Norge- og ECMWF-data ikke tilgjengelig for historiske uker.'
+        f'</div>'
+    )
+
+
 # =============================================================================
 # MAIN
 # =============================================================================
@@ -1267,12 +1285,14 @@ def update_html(html: str, analyses: list, week_start: date, week_end: date) -> 
 def main():
     args = parse_args()
     week_start, week_end = get_week_bounds(args.week)
+    historical = args.week is not None
 
-    logger.info(f"Generating report for week {week_start} – {week_end}")
+    logger.info(f"Generating {'HISTORICAL ' if historical else ''}report for week {week_start} – {week_end}")
 
     fetched = fetch_all_regions(
         config_path="config/regions.yaml",
         use_cache=not args.no_cache,
+        week_start_override=week_start if historical else None,
     )
     analyses   = analyze_all(fetched, config_path="config/regions.yaml")
     narratives = generate_all_narratives(analyses)
@@ -1286,22 +1306,32 @@ def main():
     html = html_path.read_text(encoding="utf-8")
     html = update_html(html, analyses, week_start, week_end)
 
-    logger.info("Henter norske vaerdata fra met.no...")
-    try:
-        norway_data = fetch_all_norway_regions()
-        html = inject_norway_into_html(html, norway_data)
-        logger.info(f"Norge-data injisert for {len(norway_data)} regioner.")
-    except Exception as e:
-        logger.error(f"Feil ved henting av Norge-data: {e}")
+    # ── Historisk banner injiseres rett etter <main> ──────────────────────────
+    if historical:
+        banner = build_historical_banner(week_start, week_end)
+        html = html.replace('<main class="main-content">',
+                            f'<main class="main-content">\n{banner}', 1)
 
-    logger.info("Henter ECMWF Europa-regioner...")
-    try:
-        europe_ecmwf = fetch_ecmwf_all_regions(EUROPE_REGIONS)
-        norway_ecmwf = fetch_ecmwf_all_regions(NORWAY_REGIONS)
-        html = inject_ecmwf_into_html(html, europe_ecmwf, norway_ecmwf)
-        logger.info("ECMWF-data injisert.")
-    except Exception as e:
-        logger.error(f"Feil ved henting av ECMWF-data: {e}")
+    # ── Norge og ECMWF — kun for live-kjøringer ───────────────────────────────
+    if not historical:
+        logger.info("Henter norske vaerdata fra met.no...")
+        try:
+            norway_data = fetch_all_norway_regions()
+            html = inject_norway_into_html(html, norway_data)
+            logger.info(f"Norge-data injisert for {len(norway_data)} regioner.")
+        except Exception as e:
+            logger.error(f"Feil ved henting av Norge-data: {e}")
+
+        logger.info("Henter ECMWF Europa-regioner...")
+        try:
+            europe_ecmwf = fetch_ecmwf_all_regions(EUROPE_REGIONS)
+            norway_ecmwf = fetch_ecmwf_all_regions(NORWAY_REGIONS)
+            html = inject_ecmwf_into_html(html, europe_ecmwf, norway_ecmwf)
+            logger.info("ECMWF-data injisert.")
+        except Exception as e:
+            logger.error(f"Feil ved henting av ECMWF-data: {e}")
+    else:
+        logger.info("Historisk modus — hopper over Norge/ECMWF (live-data kun).")
 
     html_path.write_text(html, encoding="utf-8")
     logger.info("index.html updated successfully.")
@@ -1309,6 +1339,8 @@ def main():
     high_regions = [a["region_name"] for a in analyses if a.get("risk_total") == "Høy"]
     if high_regions:
         logger.warning(f"HIGH RISK: {', '.join(high_regions)}")
+    if historical:
+        logger.info(f"Historisk rapport fullført: uke {week_start.isocalendar()[1]}, {week_start} – {week_end}")
 
 
 if __name__ == "__main__":
