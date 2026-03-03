@@ -232,6 +232,127 @@ def fetch_30day_precip(lat: float, lon: float) -> list[dict]:
     return result
 
 
+
+# ── Historiske varianter — relativ til en spesifikk uke ──────────────────────
+
+def fetch_7day_temp_for_week(lat: float, lon: float,
+                              week_end: date) -> list[dict]:
+    """
+    Historisk variant av fetch_7day_temp.
+    Henter de 7 dagene som ender på week_end (dvs. selve rapportuken).
+    """
+    end_date   = week_end
+    start_date = end_date - timedelta(days=6)
+
+    params = {
+        "latitude":   lat,
+        "longitude":  lon,
+        "start_date": start_date.isoformat(),
+        "end_date":   end_date.isoformat(),
+        "daily":      "temperature_2m_max,temperature_2m_min,temperature_2m_mean",
+        "timezone":   "UTC",
+    }
+    data = _request_with_retry(OPEN_METEO_HIST, params=params)
+    if not data or "daily" not in data:
+        logger.warning(f"fetch_7day_temp_for_week failed for ({lat},{lon}) week_end={week_end}")
+        return []
+
+    d = data["daily"]
+    result = []
+    for i, dt in enumerate(d.get("time", [])):
+        mx = d["temperature_2m_max"][i]  if i < len(d.get("temperature_2m_max",  [])) else None
+        mn = d["temperature_2m_min"][i]  if i < len(d.get("temperature_2m_min",  [])) else None
+        me = d["temperature_2m_mean"][i] if i < len(d.get("temperature_2m_mean", [])) else None
+        result.append({
+            "date":      dt,
+            "temp_max":  round(float(mx), 1) if mx is not None else None,
+            "temp_min":  round(float(mn), 1) if mn is not None else None,
+            "temp_mean": round(float(me), 1) if me is not None else None,
+        })
+    return result
+
+
+def fetch_30day_precip_for_week(lat: float, lon: float,
+                                 week_end: date) -> list[dict]:
+    """
+    Historisk variant av fetch_30day_precip.
+    Henter 30 dager som ender på week_end.
+    """
+    end_date   = week_end
+    start_date = end_date - timedelta(days=29)
+
+    params = {
+        "latitude":   lat,
+        "longitude":  lon,
+        "start_date": start_date.isoformat(),
+        "end_date":   end_date.isoformat(),
+        "daily":      "precipitation_sum",
+        "timezone":   "UTC",
+    }
+    data = _request_with_retry(OPEN_METEO_HIST, params=params)
+    if not data or "daily" not in data:
+        logger.warning(f"fetch_30day_precip_for_week failed for ({lat},{lon}) week_end={week_end}")
+        return []
+
+    d      = data["daily"]
+    result = []
+    for i, dt in enumerate(d.get("time", [])):
+        p = d["precipitation_sum"][i] if i < len(d.get("precipitation_sum", [])) else None
+        result.append({
+            "date":      dt,
+            "precip_mm": round(float(p), 1) if p is not None else 0.0,
+        })
+    return result
+
+
+def fetch_open_meteo_forecast_historical(lat: float, lon: float,
+                                          week_end: date) -> Optional[dict]:
+    """
+    Historisk 'forecast': henter arkivdata for de 7 dagene ETTER week_end.
+    Brukes i stedet for live forecast når man kjører for en historisk uke.
+    Inkluderer vind.
+    """
+    start = week_end + timedelta(days=1)
+    end   = week_end + timedelta(days=7)
+
+    # Kan ikke hente fremtidig arkiv — returner None stille
+    if start > date.today() - timedelta(days=1):
+        logger.info(f"    Historical post-week is in the future — skipping forecast for ({lat},{lon})")
+        return None
+
+    params = {
+        "latitude":        lat,
+        "longitude":       lon,
+        "start_date":      start.isoformat(),
+        "end_date":        end.isoformat(),
+        "daily":           ("temperature_2m_max,temperature_2m_min,"
+                            "precipitation_sum,precipitation_probability_max,"
+                            "windgusts_10m_max,windspeed_10m_max"),
+        "wind_speed_unit": "ms",
+        "timezone":        "Europe/Madrid",
+    }
+    data = _request_with_retry(OPEN_METEO_HIST, params=params)
+    if not data or "daily" not in data:
+        return None
+
+    d = data["daily"]
+    gusts = [v for v in (d.get("windgusts_10m_max", []) or []) if v is not None]
+    winds = [v for v in (d.get("windspeed_10m_max",  []) or []) if v is not None]
+
+    return {
+        "temp_max":                 d.get("temperature_2m_max", []),
+        "temp_min":                 d.get("temperature_2m_min", []),
+        "precip_sum":               d.get("precipitation_sum", []),
+        "precip_prob_max":          d.get("precipitation_probability_max", []),
+        "windgusts_10m_max":        d.get("windgusts_10m_max", []),
+        "windspeed_10m_max":        d.get("windspeed_10m_max", []),
+        "wind_gust_max_7d_ms":      round(max(gusts), 1) if gusts else None,
+        "wind_sustained_max_7d_ms": round(max(winds), 1) if winds else None,
+        "dates":                    d.get("time", []),
+        "source":                   "open-meteo-archive-postweek",
+    }
+
+
 # ── AEMET (Spain only) ────────────────────────────────────────────────────────
 
 def fetch_aemet_station(station_id: str, start: date, end: date) -> Optional[dict]:
@@ -299,32 +420,34 @@ def _save_cache(region_id: str, week_start: date, data: dict):
 # ── Main fetch orchestrator ───────────────────────────────────────────────────
 
 def fetch_all_regions(config_path: str = "config/regions.yaml",
-                      use_cache: bool = True) -> dict[str, dict]:
+                      use_cache: bool = True,
+                      week_start_override: Optional[date] = None) -> dict[str, dict]:
     """
-    Fetches observation data for the last completed week and
-    14-day forecast for all configured regions.
-    Also fetches 7-day temperature and 30-day precipitation history
-    for trend analysis.
+    Fetches observation data for a given week and 14-day forecast for all regions.
 
-    Returns dict keyed by region id:
-    {
-      "IT_PO_VALLEY": {
-        "region":         {...config...},
-        "observations":   {...},          # siste uke
-        "forecast_14d":   {...},          # neste 14 dager
-        "temp_7d_daily":  [{date, temp_max, temp_min, temp_mean}, ...],
-        "precip_30d_daily": [{date, precip_mm}, ...],
-        "week_start":     date,
-        "week_end":       date,
-      },
-      ...
-    }
+    week_start_override: hvis satt, hentes data for denne uken (historisk modus).
+    Historisk modus:
+      - Observasjoner hentes fra Open-Meteo arkiv (fungerer for alle datoer)
+      - Forecast erstattes med arkivdata for uken etter (week+1..week+2)
+      - 7d temp og 30d nedbør hentes relativt til week_end (ikke today)
+      - AEMET: kun live — ikke tilgjengelig for historiske datoer
     """
-    regions              = _load_regions(config_path)
-    week_start, week_end = _get_week_bounds()
-    results              = {}
+    regions = _load_regions(config_path)
 
-    logger.info(f"Fetching data for week {week_start} – {week_end}")
+    if week_start_override:
+        week_start = week_start_override
+        if not isinstance(week_start, date):
+            week_start = date.fromisoformat(str(week_start_override))
+        historical = True
+    else:
+        week_start, _ = _get_week_bounds()
+        historical = False
+
+    week_end = week_start + timedelta(days=6)
+    results  = {}
+
+    mode_str = f"HISTORISK ({week_start})" if historical else f"live ({week_start})"
+    logger.info(f"Fetching data — modus: {mode_str}, uke {week_start} – {week_end}")
 
     for region in regions:
         rid = region["id"]
@@ -337,21 +460,30 @@ def fetch_all_regions(config_path: str = "config/regions.yaml",
                 logger.info(f"    Cache hit for {rid}")
                 lat = region["lat"]
                 lon = region["lon"]
-                # Supplement cached record with 7d/30d if missing.
                 missing_7d  = "temp_7d_daily"    not in cached or not cached["temp_7d_daily"]
                 missing_30d = "precip_30d_daily" not in cached or not cached["precip_30d_daily"]
                 if missing_7d or missing_30d:
                     if missing_7d:
-                        cached["temp_7d_daily"]    = fetch_7day_temp(lat, lon)
+                        cached["temp_7d_daily"] = (
+                            fetch_7day_temp_for_week(lat, lon, week_end) if historical
+                            else fetch_7day_temp(lat, lon)
+                        )
                         time.sleep(0.3)
                     if missing_30d:
-                        cached["precip_30d_daily"] = fetch_30day_precip(lat, lon)
+                        cached["precip_30d_daily"] = (
+                            fetch_30day_precip_for_week(lat, lon, week_end) if historical
+                            else fetch_30day_precip(lat, lon)
+                        )
                         time.sleep(0.3)
-                # Supplement cached forecast with wind if missing (ny kolonne)
+                # Supplement with wind if missing
                 fcast = cached.get("forecast_14d") or {}
                 if "wind_gust_max_7d_ms" not in fcast:
                     logger.info(f"    Cache: mangler vinddata — henter forecast på nytt for {rid}")
-                    new_fcast = fetch_open_meteo_forecast(lat, lon, days=14)
+                    new_fcast = (
+                        fetch_open_meteo_forecast_historical(lat, lon, week_end)
+                        if historical
+                        else fetch_open_meteo_forecast(lat, lon, days=14)
+                    )
                     if new_fcast:
                         cached["forecast_14d"] = new_fcast
                     time.sleep(0.3)
@@ -361,9 +493,9 @@ def fetch_all_regions(config_path: str = "config/regions.yaml",
         lat = region["lat"]
         lon = region["lon"]
 
-        # ── Observations: prefer AEMET for Spanish stations ──────────────────
+        # ── Observations ─────────────────────────────────────────────────────
         obs = None
-        if region.get("aemet_station") and region.get("country") == "Spain":
+        if not historical and region.get("aemet_station") and region.get("country") == "Spain":
             obs = fetch_aemet_station(region["aemet_station"], week_start, week_end)
             if obs:
                 logger.info(f"    AEMET data retrieved for {rid}")
@@ -375,21 +507,33 @@ def fetch_all_regions(config_path: str = "config/regions.yaml",
             else:
                 logger.error(f"    FAILED to fetch observations for {rid}")
 
-        # ── Forecast ─────────────────────────────────────────────────────────
-        fcast = fetch_open_meteo_forecast(lat, lon, days=14)
-        if not fcast:
-            logger.error(f"    FAILED to fetch forecast for {rid}")
+        # ── Forecast / post-week arkiv ────────────────────────────────────────
+        if historical:
+            # For historiske uker: hent arkivdata for uken etter som "forecast"
+            fcast = fetch_open_meteo_forecast_historical(lat, lon, week_end)
+            if not fcast:
+                logger.warning(f"    Historical post-week data unavailable for {rid}")
+        else:
+            fcast = fetch_open_meteo_forecast(lat, lon, days=14)
+            if not fcast:
+                logger.error(f"    FAILED to fetch forecast for {rid}")
 
-        # ── 7-dagers temperatur (for 7d snitt + trend-kolonne) ────────────────
-        temp_7d = fetch_7day_temp(lat, lon)
+        # ── 7-dagers temperatur ───────────────────────────────────────────────
+        temp_7d = (
+            fetch_7day_temp_for_week(lat, lon, week_end) if historical
+            else fetch_7day_temp(lat, lon)
+        )
         if temp_7d:
             logger.info(f"    7d temp fetched ({len(temp_7d)} days)")
         else:
             logger.warning(f"    7d temp FAILED for {rid}")
         time.sleep(0.2)
 
-        # ── 30-dagers nedbør (for trendlinje-graf) ────────────────────────────
-        precip_30d = fetch_30day_precip(lat, lon)
+        # ── 30-dagers nedbør ─────────────────────────────────────────────────
+        precip_30d = (
+            fetch_30day_precip_for_week(lat, lon, week_end) if historical
+            else fetch_30day_precip(lat, lon)
+        )
         if precip_30d:
             logger.info(f"    30d precip fetched ({len(precip_30d)} days)")
         else:
@@ -404,12 +548,13 @@ def fetch_all_regions(config_path: str = "config/regions.yaml",
             "precip_30d_daily": precip_30d,
             "week_start":       week_start.isoformat(),
             "week_end":         week_end.isoformat(),
+            "historical":       historical,
         }
 
         _save_cache(rid, week_start, record)
         results[rid] = record
 
-        time.sleep(0.3)   # be polite to Open-Meteo free tier
+        time.sleep(0.3)
 
     logger.info(f"Fetch complete: {len(results)}/{len(regions)} regions")
     return results
