@@ -335,19 +335,26 @@ def fetch_all_regions(config_path: str = "config/regions.yaml",
             cached = _load_cache(rid, week_start)
             if cached:
                 logger.info(f"    Cache hit for {rid}")
+                lat = region["lat"]
+                lon = region["lon"]
                 # Supplement cached record with 7d/30d if missing.
-                # Hent begge i én blokk — hopp over hvis begge allerede finnes.
                 missing_7d  = "temp_7d_daily"    not in cached or not cached["temp_7d_daily"]
                 missing_30d = "precip_30d_daily" not in cached or not cached["precip_30d_daily"]
                 if missing_7d or missing_30d:
-                    lat = region["lat"]
-                    lon = region["lon"]
                     if missing_7d:
                         cached["temp_7d_daily"]    = fetch_7day_temp(lat, lon)
                         time.sleep(0.3)
                     if missing_30d:
                         cached["precip_30d_daily"] = fetch_30day_precip(lat, lon)
                         time.sleep(0.3)
+                # Supplement cached forecast with wind if missing (ny kolonne)
+                fcast = cached.get("forecast_14d") or {}
+                if "wind_gust_max_7d_ms" not in fcast:
+                    logger.info(f"    Cache: mangler vinddata — henter forecast på nytt for {rid}")
+                    new_fcast = fetch_open_meteo_forecast(lat, lon, days=14)
+                    if new_fcast:
+                        cached["forecast_14d"] = new_fcast
+                    time.sleep(0.3)
                 results[rid] = cached
                 continue
 
