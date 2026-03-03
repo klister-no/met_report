@@ -287,6 +287,22 @@ def build_overview_rows(analyses: list) -> str:
                    else "anom-neu")
         bg = ' style="background:#fff5f5;"' if a.get("risk_total") == "Høy" else ""
         short = rn.split("–")[-1].strip() if "–" in rn else rn
+
+        # Vind — vis m/s med fargekode for terskel
+        gust = a.get("wind_gust_max_7d_ms")
+        if gust is None:
+            gust_str = "—"
+            gust_cls = ""
+        elif gust > 20.0:
+            gust_str = f"💨 {gust:.1f}"
+            gust_cls = "wind-high"
+        elif gust > 15.0:
+            gust_str = f"💨 {gust:.1f}"
+            gust_cls = "wind-mod"
+        else:
+            gust_str = f"{gust:.1f}"
+            gust_cls = ""
+
         rows.append(
             f'<tr{bg}>'
             f'<td><span class="region-name">{short}</span><span class="region-country">{cc}</span></td>'
@@ -295,6 +311,7 @@ def build_overview_rows(analyses: list) -> str:
             f'<td class="{pct_cls}">{pct_str}</td>'
             f'<td>{risk_pill(a.get("risk_temp","Lav"))}</td>'
             f'<td>{risk_pill(a.get("risk_precip","Lav"))}</td>'
+            f'<td class="{gust_cls}" style="font-variant-numeric:tabular-nums;">{gust_str}</td>'
             f'<td>{risk_pill(a.get("risk_transport","Lav"))}</td>'
             f'<td>{risk_pill(a.get("risk_production","Lav"))}</td>'
             f'<td>{risk_pill(a.get("risk_total","Lav"))}</td>'
