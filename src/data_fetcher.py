@@ -457,9 +457,26 @@ def fetch_all_regions(config_path: str = "config/regions.yaml",
         if use_cache:
             cached = _load_cache(rid, week_start)
             if cached:
-                logger.info(f"    Cache hit for {rid}")
                 lat = region["lat"]
                 lon = region["lon"]
+
+                # Valider at observasjoner faktisk inneholder data
+                cached_obs = cached.get("observations") or {}
+                obs_valid  = bool(cached_obs.get("temp_max") or cached_obs.get("temp_min"))
+
+                if not obs_valid:
+                    logger.info(f"    Cache: observasjoner mangler/tomme for {rid} — henter på nytt")
+                    new_obs = None
+                    if not historical and region.get("aemet_station") and region.get("country") == "Spain":
+                        new_obs = fetch_aemet_station(region["aemet_station"], week_start, week_end)
+                    if not new_obs:
+                        new_obs = fetch_open_meteo_week(lat, lon, week_start, week_end)
+                    if new_obs:
+                        cached["observations"] = new_obs
+                    time.sleep(0.3)
+                else:
+                    logger.info(f"    Cache hit for {rid}")
+
                 missing_7d  = "temp_7d_daily"    not in cached or not cached["temp_7d_daily"]
                 missing_30d = "precip_30d_daily" not in cached or not cached["precip_30d_daily"]
                 if missing_7d or missing_30d:
