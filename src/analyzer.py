@@ -241,7 +241,8 @@ def analyze_region(record: dict, thresholds: dict) -> dict:
     frost_risk   = (actual_night is not None and actual_night < frost_thresh)
 
     # ── Tørkeindikator: kombinert 30d nedbørsunderskudd + varmeavvik ──────────
-    risk_drought = _classify_drought_risk(precip_30d_anom_pct, temp_7d_anomaly)
+    risk_drought = _classify_drought_risk(precip_30d_anom_pct, temp_7d_anomaly,
+                                          month=month_idx + 1)  # 1-basert måned
 
     # ── Vindrisiko (fra forecast) ─────────────────────────────────────────────
     fcast_wind_gusts = fcast.get("wind_gust_max_7d_ms")   # injisert av data_fetcher
@@ -267,7 +268,8 @@ def analyze_region(record: dict, thresholds: dict) -> dict:
         fcast_anom = fcast_day_mean - normal_day
         fcast_dir  = TREND_UP if fcast_anom > 1.0 else TREND_DOWN if fcast_anom < -1.0 else TREND_STABLE
     else:
-        fcast_dir = TREND_STABLE
+        fcast_anom = None
+        fcast_dir  = TREND_STABLE
 
     fcast_precip       = fcast.get("precip_sum", [])[:7]
     fcast_precip_total = _safe_sum(fcast_precip)
@@ -350,6 +352,7 @@ def analyze_region(record: dict, thresholds: dict) -> dict:
         "alerts_7d":            alerts_7d,
 
         "forecast_temp_direction": fcast_dir,
+        "forecast_temp_anomaly":   round(fcast_anom, 1) if fcast_anom is not None else None,
         "forecast_precip_note":    fcast_precip_note,
     }
 
@@ -389,23 +392,61 @@ def _classify_precip_risk(pct: Optional[float], thr: dict) -> str:
 
 
 def _classify_drought_risk(precip_30d_pct: Optional[float],
-                            temp_7d_anom: Optional[float]) -> str:
+                            temp_7d_anom: Optional[float],
+                            month: int = 6) -> str:
     """
     Tørkeindikator: Kombinasjon av 30d nedbørsunderskudd + varmeavvik.
     Krever BEGGE signaler for å gi Høy.
 
+    Sesongfilter (agronmisk korrekt):
+      - Nov–Mar (mnd 11,12,1,2,3): tørke ikke relevant → alltid Lav
+      - Apr, Okt: lav sesongvekt (0.3) — tidlig/sen sesong
+      - Mai–Sep: full vekt (1.0) — primær tørkesesong
+
+    Absolutt minimumsterskel:
+      - Krever at 30d total er reelt lav, ikke bare relativ
+      - Kalibrert via precip_30d_pct men blokkeres av sesongfilter
+
     Logikk:
-      - 30d underskudd ≥ 40% + temp +1.5°C → Høy tørkerisiko
-      - 30d underskudd ≥ 25% + temp +1.0°C → Moderat tørkerisiko
-      - Kun underskudd (uten varme) → Lav (håndteres av ukesnedbør)
+      - 30d underskudd ≥ 40% + temp +1.5°C + sesong ≥ 0.3 → Høy tørkerisiko
+      - 30d underskudd ≥ 25% + temp +1.0°C + sesong ≥ 0.3 → Moderat tørkerisiko
+      - Nov–Mar: alltid Lav (nedbørsunderskudd er forventet/uproblematisk)
     """
+    # Sesongvekt — nov-mar er aldri tørkerisikomåneder i Sør-Europa/MA
+    SEASON_WEIGHT = {
+        1: 0.0, 2: 0.0, 3: 0.0,   # jan-mar: vinter/tidlig vår
+        4: 0.3,                     # apr: overgang
+        5: 1.0, 6: 1.0, 7: 1.0,   # mai-jul: høy sesong
+        8: 1.0, 9: 1.0,            # aug-sep: høy sesong
+        10: 0.3,                    # okt: avslutning
+        11: 0.0, 12: 0.0,          # nov-des: vinter
+    }
+    weight = SEASON_WEIGHT.get(month, 0.5)
+
+    if weight == 0.0:
+        return RISK_LOW   # Vinter — tørke ikke relevant
+
     if precip_30d_pct is None or temp_7d_anom is None:
         return RISK_LOW
+
     deficit = precip_30d_pct   # negativt tall = underskudd
     heat    = temp_7d_anom
-    if deficit <= -40 and heat >= 1.5:
+
+    # Juster terskler etter sesongvekt (apr/okt krever sterkere signal)
+    deficit_high  = -40  / weight   # apr/okt: krever -133%, mai-sep: -40%
+    deficit_mod   = -25  / weight
+    heat_high     = 1.5  / weight
+    heat_mod      = 1.0  / weight
+
+    # Begrens til rimelige absoluttverdier
+    deficit_high = max(deficit_high, -80)
+    deficit_mod  = max(deficit_mod,  -60)
+    heat_high    = min(heat_high,     4.0)
+    heat_mod     = min(heat_mod,      3.0)
+
+    if deficit <= deficit_high and heat >= heat_high:
         return RISK_HIGH
-    if deficit <= -25 and heat >= 1.0:
+    if deficit <= deficit_mod and heat >= heat_mod:
         return RISK_MODERATE
     return RISK_LOW
 
