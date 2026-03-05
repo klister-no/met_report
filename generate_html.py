@@ -1099,6 +1099,225 @@ def build_change_rows(analyses: list, prev_analyses: list = None) -> str:
 
 
 
+
+# =============================================================================
+# PROGNOSE-FANE — dynamisk med Claude-tolkning
+# =============================================================================
+
+COUNTRY_FLAG = {"IT": "🇮🇹", "ES": "🇪🇸", "PT": "🇵🇹", "MA": "🇲🇦"}
+
+def _forecast_signal_html(temp_anom: Optional[float],
+                           precip_note: str,
+                           gust: Optional[float],
+                           alerts: list) -> str:
+    """Lager én forecast-rad med retningspil og signal-tekst."""
+    # Temperaturpil
+    if temp_anom is None:
+        temp_str = "→ Temp ukjent"
+    elif temp_anom > 1.5:
+        temp_str = f'<span class="forecast-signal trend-up">↑ Varmt +{temp_anom:.1f}°C</span>'
+    elif temp_anom < -1.5:
+        temp_str = f'<span class="forecast-signal trend-down">↓ Kjølig {temp_anom:.1f}°C</span>'
+    else:
+        temp_str = f'<span class="forecast-signal trend-flat">→ Nær normal temp ({temp_anom:+.1f}°C)</span>'
+
+    # Nedbørssignal
+    pn = precip_note or ""
+    if "Kraftig" in pn or "⚠️" in pn:
+        precip_str = f'<span style="color:#b45309;">⚠️ {pn.replace("⚠️ ","")}</span>'
+    elif "Tørrere" in pn:
+        precip_str = f'<span style="color:#92400e;">🌵 {pn}</span>'
+    elif "Mer nedbør" in pn:
+        precip_str = f'<span style="color:#1d4ed8;">🌧️ {pn}</span>'
+    else:
+        precip_str = f'<span style="color:#374151;">{pn}</span>'
+
+    # Vindvarsel
+    wind_str = ""
+    if gust and gust > 20:
+        wind_str = f' · <span style="color:#dc2626;">💨 Storm {gust:.0f} m/s</span>'
+    elif gust and gust > 15:
+        wind_str = f' · <span style="color:#d97706;">💨 Sterk vind {gust:.0f} m/s</span>'
+
+    # Aktive varsler
+    alert_html = ""
+    if alerts:
+        alert_html = " · " + " ".join(
+            f'<span class="alert-badge">{a.split("(")[0].strip()}</span>'
+            for a in alerts[:2]
+        )
+
+    return (f'{temp_str} · {precip_str}{wind_str}{alert_html}')
+
+
+def _build_forecast_rules(analyses: list, week_start: date, week_end: date) -> str:
+    """
+    Regelbasert prognose-HTML. Brukes når Claude API ikke er tilgjengelig,
+    eller som datainput til Claude.
+    """
+    week_num  = week_start.isocalendar()[1]
+    next_week = week_start + timedelta(days=7)
+    nw_num    = next_week.isocalendar()[1]
+    months_no = ["jan","feb","mar","apr","mai","jun","jul","aug","sep","okt","nov","des"]
+    date_str  = (f"{week_start.day}. {months_no[week_start.month-1]} – "
+                 f"{week_end.day}. {months_no[week_end.month-1]} {week_end.year}")
+
+    rows = []
+    for a in analyses:
+        cc    = a["region_id"].split("_")[0]
+        flag  = COUNTRY_FLAG.get(cc, "")
+        name  = a["region_name"].split("–")[-1].strip() if "–" in a["region_name"] else a["region_name"]
+        fdir  = a.get("forecast_temp_direction", "→")
+        fanom = a.get("forecast_temp_anomaly")
+        pnote = a.get("forecast_precip_note", "Ingen data")
+        gust  = a.get("wind_gust_max_7d_ms")
+        alerts = a.get("alerts_7d", [])
+
+        signal = _forecast_signal_html(fanom, pnote, gust, alerts)
+        rows.append(
+            f'<div class="forecast-row">'
+            f'<span class="forecast-region">{flag} {name}</span>'
+            f'<span>{signal}</span>'
+            f'</div>'
+        )
+
+    rows_html = "\n        ".join(rows)
+
+    return f"""
+  <div class="forecast-grid">
+    <div class="forecast-card">
+      <div class="forecast-card-header">
+        Prognose neste 7 dager (uke {nw_num})
+        <span class="precision-tag">Open-Meteo forecast</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);padding:0.4rem 1rem 0;">
+        Basert på observert uke {week_num} ({date_str}) + 7-dagersprognose
+      </div>
+      <div class="forecast-rows">
+        {rows_html}
+      </div>
+    </div>
+  </div>"""
+
+
+def _summarize_for_claude(analyses: list, week_start: date) -> str:
+    """Lager et kompakt datasett som input til Claude-tolkning."""
+    lines = [f"Rapportuke: {week_start.isoformat()} (uke {week_start.isocalendar()[1]})"]
+    lines.append(f"Måned: {week_start.month} ({'vinter' if week_start.month in [12,1,2,3] else 'vår/sommer/høst'})")
+    lines.append("")
+    for a in analyses:
+        rid  = a["region_id"]
+        name = a["region_name"].split("–")[-1].strip() if "–" in a["region_name"] else a["region_name"]
+        lines.append(f"Region: {name} ({rid})")
+        lines.append(f"  Temp-avvik dag:   {a.get('temp_day_anomaly', 'N/A')}°C")
+        lines.append(f"  Temp-avvik 7d:    {a.get('temp_7d_anomaly', 'N/A')}°C")
+        lines.append(f"  Nedbør uke-avvik: {a.get('precip_anomaly_pct', 'N/A')}%")
+        lines.append(f"  Nedbør 30d-avvik: {a.get('precip_30d_anomaly_pct', 'N/A')}%")
+        lines.append(f"  Vindkast 7d:      {a.get('wind_gust_max_7d_ms', 'N/A')} m/s")
+        lines.append(f"  Risiko total:     {a.get('risk_total', 'N/A')}")
+        lines.append(f"  Risiko tørke:     {a.get('risk_drought', 'N/A')}")
+        lines.append(f"  Forecast nedbør:  {a.get('forecast_precip_note', 'N/A')}")
+        alerts = a.get("alerts_7d", [])
+        if alerts:
+            lines.append(f"  Varsler 7d:       {'; '.join(alerts)}")
+        lines.append("")
+    return "\n".join(lines)
+
+
+def _call_claude_forecast(data_summary: str, week_start: date) -> Optional[str]:
+    """
+    Kaller Claude API for å generere en kvalifisert meteorologisk tolkning
+    av forecast-dataene. Returnerer HTML-streng eller None ved feil.
+    """
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        logger.info("ANTHROPIC_API_KEY ikke satt — hopper over Claude-tolkning")
+        return None
+
+    month = week_start.month
+    season = ("vinter" if month in [12, 1, 2, 3]
+              else "vår" if month in [4, 5]
+              else "sommer" if month in [6, 7, 8]
+              else "høst")
+
+    system = """Du er en senior agro-meteorolog med spesialkompetanse på forsyningskjeder for frukt og grønnsaker i Sør-Europa og Nord-Afrika. 
+Du tolker meteorologiske data og gir presise, handlingsorienterte vurderinger på norsk.
+
+Stil: faglig men tilgjengelig. Unngå unødvendig alarmisme. Vektlegg sesongkontekst.
+Svar BARE med HTML (ingen markdown, ingen forklaringer utenfor HTML).
+Bruk disse klassene: forecast-card, forecast-card-header, forecast-rows, forecast-row, forecast-region, forecast-signal, trend-up, trend-down, trend-flat, precision-tag"""
+
+    prompt = f"""Basert på disse meteorologiske dataene fra rapportuken, generer en prognosevurdering for neste 7–14 dager.
+
+{data_summary}
+
+Sesong: {season} (måned {month})
+
+Generer HTML med:
+1. Ett kort «Overordnet vurdering» (2–3 setninger) i en <div class="table-explainer"> 
+2. En <div class="forecast-grid"> med forecast-cards:
+   - Kort 1: «Neste 7 dager per region» — én rad per region med konkret vurdering
+   - Kort 2: «Sesong og mønstre» — overordnede trender, forsyningskjede-implikasjoner
+
+Regler:
+- Tørke er bare relevant mai–september. Ikke nevn tørkerisiko i vintermåneder.
+- Nedbørsunderskudd alene om vinteren er ikke problematisk — si det eksplisitt hvis relevant.
+- Fremhev regioner med reell risiko (Høy/Moderat). 
+- Legg alltid til en kilde-linje: <div style="font-size:11px;color:var(--muted);padding:0.4rem 1rem;border-top:1px solid var(--border);">Tolkning: Claude AI · Data: Open-Meteo · Oppdatert: [dagens dato]</div>"""
+
+    try:
+        import urllib.request, json as _json
+        payload = _json.dumps({
+            "model": "claude-sonnet-4-20250514",
+            "max_tokens": 1500,
+            "system": system,
+            "messages": [{"role": "user", "content": prompt}]
+        }).encode()
+
+        req = urllib.request.Request(
+            "https://api.anthropic.com/v1/messages",
+            data=payload,
+            headers={
+                "Content-Type":      "application/json",
+                "x-api-key":         api_key,
+                "anthropic-version": "2023-06-01",
+            },
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=45) as resp:
+            result = _json.loads(resp.read().decode())
+            text_blocks = [b["text"] for b in result.get("content", []) if b.get("type") == "text"]
+            return "\n".join(text_blocks) if text_blocks else None
+    except Exception as e:
+        logger.warning(f"Claude forecast API feil: {e}")
+        return None
+
+
+def build_forecast_tab(analyses: list, week_start: date, week_end: date) -> str:
+    """
+    Bygger prognose-fane dynamisk.
+    1. Prøver Claude API for kvalifisert tolkning
+    2. Faller tilbake til regelbasert HTML
+    """
+    # Alltid bygg regelbasert som fallback/datainput
+    rules_html   = _build_forecast_rules(analyses, week_start, week_end)
+    data_summary = _summarize_for_claude(analyses, week_start)
+
+    # Prøv Claude
+    claude_html = _call_claude_forecast(data_summary, week_start)
+
+    if claude_html:
+        logger.info("Forecast-fane: Claude AI-tolkning injisert")
+        # Legg regelbasert datatabell under Claude-tolkning
+        return (claude_html + "\n" +
+                '<details style="margin:1rem 0;"><summary style="cursor:pointer;font-size:12px;'
+                'color:var(--muted);">📊 Vis rådata (regelbasert)</summary>'
+                + rules_html + "</details>")
+    else:
+        logger.info("Forecast-fane: regelbasert HTML (Claude ikke tilgjengelig)")
+        return rules_html
+
+
 # =============================================================================
 # REPLACE SECTION HELPER
 # =============================================================================
@@ -1249,6 +1468,11 @@ def update_html(html: str, analyses: list, week_start: date, week_end: date) -> 
     html = replace_section(html,
         "<!-- DATA:DASHBOARD_START -->", "<!-- DATA:DASHBOARD_END -->",
         build_dashboard(analyses, gibraltar_data))
+
+    # ── Prognose-fane ─────────────────────────────────────────────────────────
+    html = replace_section(html,
+        "<!-- DATA:FORECAST_START -->", "<!-- DATA:FORECAST_END -->",
+        build_forecast_tab(analyses, week_start, week_end))
 
     # ── News ──────────────────────────────────────────────────────────────────
     articles = fetch_news(max_articles=12)
