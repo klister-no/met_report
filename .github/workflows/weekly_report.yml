@@ -23,7 +23,7 @@ on:
 jobs:
   update-report:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
 
     permissions:
       contents: write     # Trengs for å pushe index.html tilbake til repoet
