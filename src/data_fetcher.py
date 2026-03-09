@@ -33,8 +33,8 @@ OPEN_METEO_URL     = "https://api.open-meteo.com/v1/forecast"
 OPEN_METEO_HIST    = "https://archive-api.open-meteo.com/v1/archive"
 AEMET_BASE_URL     = "https://opendata.aemet.es/openapi/api"
 CACHE_DIR          = Path("data/cache")
-REQUEST_TIMEOUT    = 30   # økt fra 20 — archive-api er treg fra GitHub Actions
-RETRY_ATTEMPTS     = 2    # redusert fra 3 — sparer tid ved timeout (2x30s vs 3x20s)
+REQUEST_TIMEOUT    = 15   # 15s per forsøk — 2 forsøk = maks 30s per kall
+RETRY_ATTEMPTS     = 2    # 2 forsøk er nok — raskere fallback ved overbelastning
 RETRY_DELAY        = 3    # sekunder mellom forsøk
 
 
