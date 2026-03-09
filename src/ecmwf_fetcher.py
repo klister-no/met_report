@@ -25,7 +25,7 @@ BASE_ECMWF      = "https://api.open-meteo.com/v1/ecmwf"
 BASE_ENSEMBLE   = "https://api.open-meteo.com/v1/ensemble"
 BASE_SEASONAL   = "https://seasonal-api.open-meteo.com/v1/seasonal"
 
-TIMEOUT = 20
+TIMEOUT = 10
 
 
 # ── Alle regioner ──────────────────────────────────────────────────────────────
@@ -442,7 +442,8 @@ def fetch_ecmwf_seasonal(region: dict) -> Optional[dict]:
 def fetch_all_ecmwf_for_region(region: dict) -> dict:
     """
     Henter alle ECMWF-lag for én region:
-    HRES (15d) + ENS (10d) + EC46 (46d) + SEAS5 (6mnd)
+    HRES (15d) + ENS (10d) + EC46 (46d)
+    SEAS5 er deaktivert — returnerer konsekvent 400 Bad Request.
     """
     logger.info(f"  HRES 15d   → {region['name']}")
     hres = fetch_ecmwf_hres(region)
@@ -453,8 +454,8 @@ def fetch_all_ecmwf_for_region(region: dict) -> dict:
     logger.info(f"  EC46 46d   → {region['name']}")
     subseasonal = fetch_ecmwf_subseasonal(region)
 
-    logger.info(f"  SEAS5 6mnd → {region['name']}")
-    seasonal = fetch_ecmwf_seasonal(region)
+    # SEAS5 deaktivert — API returnerer 400 for alle regioner (modell ikke tilgjengelig)
+    seasonal = None
 
     return {
         "region":      region,
