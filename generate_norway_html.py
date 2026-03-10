@@ -66,35 +66,47 @@ def symbol_to_emoji(symbol: str) -> str:
     return "🌡️"
 
 
-def generate_temp_sparkline(forecast_days: list) -> str:
-    """CSS-based temperature sparkline for 10-day forecast."""
-    if not forecast_days:
+def generate_temp_sparkline(forecast_days: list, historical_days: list = None) -> str:
+    """CSS sparkline: 4 historiske dager (grå) + strek + 10 prognose-dager (fargekodede)."""
+    hist  = (historical_days or [])[-4:]
+    fcast = (forecast_days  or [])[:10]
+    all_days = hist + fcast
+    if not all_days:
         return ""
-    days = forecast_days[:10]
-    # Normalize temperatures to bar heights (4-32px range)
-    temps = [d.get("temp_max", 0) for d in days]
+
+    temps = [d.get("temp_max") or 0 for d in all_days]
     mn, mx = min(temps), max(temps)
     span = mx - mn if mx != mn else 1
+
     bars = []
-    for d, t in zip(days, temps):
+    for i, d in enumerate(all_days):
+        t         = d.get("temp_max") or 0
+        is_hist   = d.get("historical", False)
         has_frost = d.get("has_frost", False)
-        avvik = d.get("temp_avvik", 0)
-        h = int(4 + (t - mn) / span * 28)
-        color = "#2563eb" if has_frost else ("#ef4444" if avvik > 2 else "#22c55e" if avvik > -1 else "#3b82f6")
+        avvik     = d.get("temp_avvik") or 0
+        h         = int(4 + (t - mn) / span * 28)
         date_short = d.get("date_display", "")[:5]
+
+        color   = "#d1d5db" if is_hist else ("#2563eb" if has_frost else ("#ef4444" if avvik > 2 else "#22c55e" if avvik > -1 else "#3b82f6"))
+        opacity = "opacity:0.75;" if is_hist else ""
+
+        if i == len(hist) and len(hist) > 0:
+            bars.append('<div style="width:2px;height:38px;background:#cbd5e1;margin:0 2px;align-self:flex-end;border-radius:1px;"></div>')
+
         bars.append(
             f'<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">'
-            f'<div style="width:18px;height:{h}px;background:{color};border-radius:3px 3px 0 0;" title="{date_short}: {t}°C"></div>'
-            f'<div style="font-size:9px;color:#888;white-space:nowrap;">{date_short}</div>'
+            f'<div style="width:18px;height:{h}px;background:{color};{opacity}border-radius:3px 3px 0 0;" title="{date_short}: {t}°C"></div>'
+            f'<div style="font-size:9px;color:{"#aab" if is_hist else "#888"};white-space:nowrap;">{date_short}</div>'
             f'</div>'
         )
     return (
         f'<div style="margin-top:12px;">'
-        f'<div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:6px;">📊 Temperatur 10 dager (maks °C)</div>'
-        f'<div style="display:flex;align-items:flex-end;gap:4px;height:50px;padding-bottom:18px;">'
+        f'<div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:6px;">📊 Temp: obs. 4d + prognose 10d (maks °C)</div>'
+        f'<div style="display:flex;align-items:flex-end;gap:3px;height:50px;padding-bottom:18px;">'
         + "".join(bars) +
         f'</div>'
-        f'<div style="font-size:10px;color:#94a3b8;margin-top:2px;">🔵 Frost &nbsp; 🔴 +2°C over normalt &nbsp; 🟢 Normal</div>'
+        f'<div style="font-size:10px;color:#94a3b8;margin-top:2px;">'
+        f'<span style="color:#d1d5db;">■</span> Obs. &nbsp;│&nbsp; 🔵 Frost &nbsp; 🔴 +2°C &nbsp; 🟢 Normal</div>'
         f'</div>'
     )
 
@@ -265,7 +277,7 @@ def generate_region_cards(regions_data: list) -> str:
                 {frost['emoji']} <strong>Frost:</strong> {frost['detail']}
             </div>
 
-            {generate_temp_sparkline(forecast)}
+            {generate_temp_sparkline(forecast, r.get("historical_days", []))}
             {prognose_html}
         </div>"""
 
