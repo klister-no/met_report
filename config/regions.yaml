@@ -1,174 +1,264 @@
-# Regions config – Nordic Fruit & Vegetable Wholesaler
-# Climate normals: WMO 1991–2020
-# Coordinates: centroid of main production area
-# DO NOT change region order – required for week-over-week comparison
+# =============================================================================
+# Regioner for agrometeorologisk risikodashboard
+# Sist oppdatert: 2026-03-10
+#
+# AEMET-stasjonskoder (bekreftet aktive, kilde: AEMET OpenData / x-y.es):
+#   Murcia-regionen:
+#     7209     – Lorca              (312m, Guadalentín-dalen,  oppdatert daglig)
+#     7026X    – Torre-Pacheco CCA (50m,  Campo de Cartagena,  oppdatert daglig)
+#   Valencia-by:
+#     8416Y    – Valencia Viveros  (11m,  bykjerne,            oppdatert daglig)
+#     8414A    – Valencia Aeropuerto (56m, synoptisk stasjon,  timesdata)
+#   Castellón:
+#     8500A    – Castelló/Almassora (43m, synoptisk stasjon,   timesdata)
+#   Valencia syd:
+#     8058X    – Oliva              (1m,  kyst, historikk 1992–d.d.)
+#     8300X    – Carcaixent         (25m, innland, sitrus-sone)
+#   Huelva:
+#     4642E    – Huelva
+#   Sevilla:
+#     5783     – Sevilla/San Pablo
+#   Almería:
+#     6325O    – Almería/Aeropuerto
+#
+# Merk: aemet_station brukes kun for live-kjøringer.
+#        Historisk modus faller alltid tilbake på Open-Meteo arkiv.
+# =============================================================================
 
 regions:
 
-  # ── ITALIA ────────────────────────────────────────────────────────────────
+  # ── ITALIA ──────────────────────────────────────────────────────────────────
+
   - id: IT_PO_VALLEY
-    name: "IT – Po-dalen (nord)"
+    name: "IT – Po-dalen"
     country: Italy
     lat: 44.90
-    lon: 11.50
-    aemet_station: null
-    key_crops: [salads, radicchio, pears, apples]
+    lon: 11.20
+    key_crops: [grønnsaker, frukt, mais, hvete]
+    notes: "Nord-Italia. Stor produksjonsregion. Risiko: frost om vinteren, tørke om sommeren."
     normals:
-      temp_day:   [5, 8, 12, 17, 22, 26, 29, 28, 23, 17, 10, 6]   # Jan–Dec °C
-      temp_night: [0, 1,  4,  9, 13, 17, 19, 19, 15,  9,  4, 1]
-      precip_mm:  [42, 38, 47, 50, 60, 55, 42, 48, 52, 62, 58, 48] # monthly mm
+      temp_day:   [4,  6, 12, 17, 22, 26, 29, 28, 23, 17, 10,  5]
+      temp_night: [-2, 0,  4,  8, 13, 17, 19, 19, 15,  9,  4,  0]
+      precip_mm:  [50, 48, 55, 68, 80, 65, 45, 55, 75, 90, 80, 55]
 
   - id: IT_CENTRAL
-    name: "IT – Sentral Italia (Roma/Lazio)"
+    name: "IT – Sentral-Italia"
     country: Italy
-    lat: 41.90
-    lon: 12.50
-    aemet_station: null
-    key_crops: [artichokes, broccoli, fennel, chicory]
+    lat: 42.50
+    lon: 12.80
+    key_crops: [grønnsaker, oliven, vin, tomat]
+    notes: "Sentral-Italia (Toscana/Lazio-sonen). Middelhavs­klima, tørt om sommeren."
     normals:
-      temp_day:   [12, 13, 15, 18, 23, 27, 30, 30, 26, 21, 16, 12]
-      temp_night: [ 3,  4,  5,  8, 12, 16, 18, 18, 15, 11,  7,  4]
-      precip_mm:  [78, 68, 62, 52, 44, 22, 15, 25, 62, 92, 99, 88]
+      temp_day:   [9, 11, 14, 18, 23, 28, 32, 31, 26, 20, 14, 10]
+      temp_night: [2,  3,  5,  8, 12, 16, 19, 19, 15, 11,  6,  3]
+      precip_mm:  [65, 60, 65, 70, 75, 50, 25, 30, 65, 95,100, 80]
 
-  - id: IT_NAPLES
-    name: "IT – Napoli-området"
+  - id: IT_NAPLES_AMALFI
+    name: "IT – Napoli/Amalfi"
     country: Italy
-    lat: 40.85
-    lon: 14.25
-    aemet_station: null
-    key_crops: [tomatoes, courgettes, aubergine, peppers]
+    lat: 40.65
+    lon: 14.80
+    key_crops: [tomater, sitroner, aubergine, paprika]
+    notes: "Campania-kysten og Amalfi-området. Varm og fuktig om høsten, risiko for ekstremnedbør."
     normals:
-      temp_day:   [13, 13, 15, 18, 23, 27, 30, 30, 27, 22, 17, 14]
-      temp_night: [ 7,  7,  8, 11, 15, 19, 22, 22, 19, 15, 11,  8]
-      precip_mm:  [92, 80, 65, 55, 38, 18, 10, 22, 62, 98,108, 98]
+      temp_day:   [13, 14, 16, 19, 24, 28, 31, 31, 27, 22, 17, 14]
+      temp_night: [ 6,  7,  9, 11, 15, 19, 22, 22, 18, 14, 10,  7]
+      precip_mm:  [90, 80, 75, 65, 55, 30, 15, 20, 60,110,115,100]
 
-  - id: IT_AMALFI
-    name: "IT – Amalfi-kysten"
-    country: Italy
-    lat: 40.63
-    lon: 14.60
-    aemet_station: null
-    key_crops: [lemons, citrus, tomatoes]
-    normals:
-      temp_day:   [14, 14, 16, 19, 23, 27, 30, 30, 27, 22, 18, 15]
-      temp_night: [ 8,  8,  9, 12, 16, 20, 23, 23, 20, 16, 12,  9]
-      precip_mm:  [96, 82, 68, 56, 36, 16,  8, 18, 64,102,110,102]
+  # ── SPANIA – MURCIA (oppdatert 2026-03-10) ──────────────────────────────────
+  # Endring: splitter gammel ES_MURCIA (Murcia by, 7178I) i to presise regioner.
+  # Murcia by er ikke landbruksrelevant – Lorca og Campo de Cartagena er det.
 
-  # ── SPANIA ────────────────────────────────────────────────────────────────
-  - id: ES_MURCIA
-    name: "ES – Murcia"
+  - id: ES_MURCIA_LORCA
+    name: "ES – Murcia: Lorca/Guadalentín"
     country: Spain
-    lat: 37.98
-    lon: -1.13
-    aemet_station: "7178I"
-    key_crops: [tomatoes, peppers, lettuce, citrus, broccoli]
+    aemet_station: "7209"          # Lorca, 312m, aktiv, historikk fra 1984
+    lat: 37.67
+    lon: -1.69
+    key_crops: [sitroner, grønnsaker, paprika, tomater, blomster]
+    notes: >
+      Guadalentín-dalen vest i Murcia. Primær produksjonssone for sitrus og grønnsaker.
+      312m over havet – noe kaldere netter enn kysten. Frostrisiko jan–feb.
+      AEMET 7209 dekker hele dalen inkl. Puerto Lumbreras-korridoren.
     normals:
-      temp_day:   [14, 15, 18, 21, 25, 30, 33, 33, 29, 23, 18, 14]
-      temp_night: [ 5,  6,  8, 10, 14, 18, 21, 21, 18, 13,  8,  6]
-      precip_mm:  [26, 24, 27, 30, 28, 14,  4,  6, 24, 38, 38, 30]
+      temp_day:   [13, 15, 18, 22, 26, 31, 35, 35, 29, 23, 17, 13]
+      temp_night: [ 4,  5,  7, 10, 14, 18, 21, 21, 17, 12,  7,  4]
+      precip_mm:  [22, 20, 25, 28, 25, 12,  4,  6, 22, 42, 35, 25]
+
+  - id: ES_MURCIA_CAMPO
+    name: "ES – Murcia: Campo de Cartagena"
+    country: Spain
+    aemet_station: "7026X"         # Torre-Pacheco CCA, 50m, aktiv, timesdata
+    lat: 37.74
+    lon: -0.97
+    key_crops: [salat, brokkoli, blomkål, tomater, sitrus, blomster]
+    notes: >
+      Campo de Cartagena – flatland øst i Murcia mot Middelhavet.
+      50m over havet, varmere netter enn innlandet. Tett irrigert grønnsaksone.
+      Torre-Pacheco og Fuente Álamo er kjerneområdene. AEMET 7026X er primærstasjon.
+      Sekundær referanse: 7023X Fuente Álamo (140m, 10km vest).
+    normals:
+      temp_day:   [15, 17, 19, 23, 27, 31, 33, 33, 29, 24, 19, 15]
+      temp_night: [ 6,  7,  9, 12, 16, 20, 23, 23, 19, 14,  9,  6]
+      precip_mm:  [25, 22, 28, 30, 25, 10,  3,  5, 22, 40, 32, 24]
+
+  # ── SPANIA – VALENCIA (ny oppdeling 2026-03-10) ──────────────────────────────
+  # Erstatter en tenkt generisk Valencia-region med tre presise soner som har
+  # ulike værmønstre og produktprofiler.
+
+  - id: ES_VALENCIA_NORTE
+    name: "ES – Valencia: By og nord"
+    country: Spain
+    aemet_station: "8416Y"         # Valencia Viveros, 11m, bykjerne, daglig
+    lat: 39.48
+    lon: -0.37
+    key_crops: [sitrus, tomater, paprika, blomster]
+    notes: >
+      Valencia by og Horta Nord (Sagunto–Valencia). Kystklima, sjelden frost.
+      8416Y (Valencia Viveros) er primærstasjonen for temperaturer.
+      8414A (Valencia Aeropuerto, 56m) brukes som backup og for vinddata.
+      Inkluderer Sagunto-/Pobla de Vallbona-sonen nordover.
+    normals:
+      temp_day:   [15, 16, 19, 21, 25, 29, 32, 32, 28, 23, 18, 15]
+      temp_night: [ 7,  8,  9, 12, 15, 19, 22, 22, 19, 15, 10,  7]
+      precip_mm:  [35, 30, 35, 38, 42, 22, 10, 15, 58, 75, 55, 40]
+
+  - id: ES_CASTELLON
+    name: "ES – Castellón"
+    country: Spain
+    aemet_station: "8500A"         # Castelló/Almassora, 43m, synoptisk, timesdata
+    lat: 39.99
+    lon: -0.05
+    key_crops: [appelsiner, klementiner, artisjokker, blomster]
+    notes: >
+      Castellón-provinsen (La Plana). Primær appelsin- og klementinsone i Spania.
+      43m over havet, kystklima men noe kaldere enn Valencia om vinteren.
+      8500A (Almassora) er eneste robuste synoptiske stasjon i provinsen.
+      Inkluderer Nules-, Burriana- og Villarreal-sonene.
+    normals:
+      temp_day:   [14, 15, 18, 21, 24, 28, 31, 31, 27, 22, 17, 14]
+      temp_night: [ 6,  7,  8, 11, 14, 18, 21, 21, 18, 14,  9,  6]
+      precip_mm:  [40, 35, 40, 42, 50, 28, 12, 18, 65, 80, 60, 45]
+
+  - id: ES_VALENCIA_SUR
+    name: "ES – Valencia: Syd (Gandia–Oliva)"
+    country: Spain
+    aemet_station: "8058X"         # Oliva, 1m, kyst, historikk 1992–d.d.
+    lat: 38.92
+    lon: -0.12
+    key_crops: [appelsiner, klementin, persimmon, druer, blomster]
+    notes: >
+      Sør-Valencia: La Safor og Ribera Alta/Baixa (Gandia, Oliva, Carcaixent-sonen).
+      Varmere og fuktigere enn nord-Valencia, særlig om høsten (DANA-risiko sept–okt).
+      8058X (Oliva, 1m) er primærstasjon – best for kyst og Safor-sonen.
+      8300X (Carcaixent, 25m) er sekundær for innlandssonen (Ribera Alta).
+      Viktig: Denne sonen ble hardt rammet av DANA-flommen oktober 2024.
+    normals:
+      temp_day:   [16, 17, 20, 22, 26, 30, 33, 33, 28, 23, 19, 16]
+      temp_night: [ 7,  8, 10, 12, 16, 20, 23, 23, 19, 15, 10,  7]
+      precip_mm:  [45, 38, 42, 45, 48, 25, 10, 18, 75, 95, 65, 48]
+
+  # ── SPANIA – ANDALUCÍA ───────────────────────────────────────────────────────
 
   - id: ES_ALMERIA
     name: "ES – Almería"
     country: Spain
+    aemet_station: "6325O"         # Almería/Aeropuerto
     lat: 36.84
     lon: -2.46
-    aemet_station: "6325O"
-    key_crops: [tomatoes, peppers, cucumbers, courgettes, aubergine]
+    key_crops: [tomater, paprika, agurk, blomster]
+    notes: "Plastsone. Tørt og varmt hele året. Ekstremt lite nedbør."
     normals:
-      temp_day:   [16, 17, 19, 22, 25, 29, 32, 32, 29, 24, 20, 16]
-      temp_night: [ 7,  8,  9, 12, 15, 19, 22, 22, 19, 15, 10,  7]
-      precip_mm:  [22, 18, 20, 22, 18,  8,  2,  4, 18, 32, 36, 24]
+      temp_day:   [17, 18, 21, 23, 26, 30, 32, 33, 29, 24, 20, 17]
+      temp_night: [ 8,  9, 11, 13, 16, 20, 23, 23, 20, 15, 11,  8]
+      precip_mm:  [20, 18, 22, 25, 18,  8,  2,  5, 20, 35, 30, 22]
 
   - id: ES_HUELVA
     name: "ES – Huelva"
     country: Spain
+    aemet_station: "4642E"
     lat: 37.26
     lon: -6.95
-    aemet_station: "4642E"
-    key_crops: [strawberries, raspberries, blueberries, courgettes]
+    key_crops: [jordbær, bringebær, blåbær, avokado]
+    notes: "Jordbær­regionen. Atlantisk klima, vår­fuktig. Risiko: sen frost mars–april."
     normals:
-      temp_day:   [15, 16, 19, 21, 25, 30, 33, 33, 29, 23, 18, 15]
+      temp_day:   [15, 16, 19, 22, 26, 31, 35, 34, 29, 23, 18, 15]
       temp_night: [ 6,  7,  9, 11, 14, 18, 20, 20, 17, 13,  9,  7]
-      precip_mm:  [82, 70, 54, 42, 24,  6,  1,  2, 18, 52, 80, 90]
+      precip_mm:  [65, 55, 48, 40, 28,  8,  2,  3, 25, 65, 75, 70]
 
   - id: ES_SEVILLA
     name: "ES – Sevilla"
     country: Spain
-    lat: 37.38
-    lon: -5.97
-    aemet_station: "5783"
-    key_crops: [strawberries, oranges, olives, asparagus]
+    aemet_station: "5783"          # Sevilla/San Pablo
+    lat: 37.42
+    lon: -5.88
+    key_crops: [oliven, tomater, appelsiner, sitron]
+    notes: "Varmt kontinentalt klima. Høy sommertemperatur, milde vintre."
     normals:
       temp_day:   [15, 17, 20, 23, 27, 32, 36, 36, 31, 24, 19, 15]
-      temp_night: [ 6,  7,  9, 11, 14, 18, 20, 20, 17, 13,  9,  7]
-      precip_mm:  [66, 58, 44, 38, 24,  6,  1,  2, 18, 52, 74, 78]
+      temp_night: [ 5,  6,  8, 11, 14, 18, 21, 21, 18, 13,  8,  5]
+      precip_mm:  [60, 52, 45, 38, 25,  6,  1,  2, 22, 60, 70, 65]
 
-  - id: ES_MADRID
-    name: "ES – Madrid (Iberia-ref.)"
+  - id: ES_MADRID_REF
+    name: "ES – Madrid (ref.)"
     country: Spain
-    lat: 40.42
-    lon: -3.70
-    aemet_station: "3195"
-    key_crops: []   # Reference station only
+    lat: 40.45
+    lon: -3.55
+    key_crops: [referansepunkt_distribusjon]
+    notes: "Logistikkpunkt. Innlandsstasjon for distribusjonsvurderinger."
     normals:
-      temp_day:   [ 9, 11, 15, 18, 23, 29, 33, 32, 27, 20, 13,  9]
-      temp_night: [ 2,  3,  5,  7, 11, 16, 19, 19, 14,  9,  4,  2]
-      precip_mm:  [38, 36, 36, 40, 48, 26, 10, 12, 28, 46, 54, 44]
+      temp_day:   [ 9, 11, 15, 18, 22, 28, 32, 31, 26, 19, 12,  9]
+      temp_night: [ 1,  2,  4,  7, 10, 15, 18, 18, 14,  9,  4,  2]
+      precip_mm:  [38, 35, 42, 48, 52, 28, 12, 10, 30, 55, 50, 42]
 
-  # ── PORTUGAL ──────────────────────────────────────────────────────────────
+  # ── PORTUGAL ─────────────────────────────────────────────────────────────────
+
   - id: PT_LISBON_ALGARVE
-    name: "PT – Lisboa / Algarve"
+    name: "PT – Lisboa/Algarve"
     country: Portugal
-    lat: 38.72
-    lon: -9.14
-    aemet_station: null   # Use IPMA data via Open-Meteo
-    key_crops: [strawberries, citrus, tomatoes, peppers]
+    lat: 37.20
+    lon: -8.00
+    key_crops: [jordbær, tomater, sitrus, kork]
+    notes: "Algarve og Sør-Portugal. Atlantisk/middelhavsklima. Tidlig sesongstart."
     normals:
-      temp_day:   [14, 15, 17, 20, 23, 27, 29, 29, 26, 22, 17, 14]
-      temp_night: [ 7,  8,  9, 11, 13, 17, 18, 18, 17, 13, 10,  8]
-      precip_mm:  [96, 80, 62, 46, 30,  8,  2,  4, 26, 68,102,108]
+      temp_day:   [15, 16, 18, 20, 23, 27, 30, 30, 27, 22, 18, 15]
+      temp_night: [ 8,  9, 10, 12, 14, 18, 20, 20, 18, 15, 11,  8]
+      precip_mm:  [90, 75, 65, 48, 38, 12,  3,  4, 30, 85,100, 95]
 
-  # ── MAROKKO ───────────────────────────────────────────────────────────────
-  - id: MA_NORTH
-    name: "MA – Nord (Rabat/Loukkos/Gharb)"
+  # ── MAROKKO ───────────────────────────────────────────────────────────────────
+
+  - id: MA_NORTH_RABAT
+    name: "MA – Nord (Rabat/Casablanca)"
     country: Morocco
-    lat: 34.02
-    lon: -6.84
-    aemet_station: null
-    key_crops: [strawberries, tomatoes, citrus, sugar_beet, courgettes]
+    lat: 33.90
+    lon: -6.85
+    key_crops: [tomater, paprika, bønner, jordbær]
+    notes: "Atlantisk kyststripe nord i Marokko. Vinter­produksjon for euromarkedet."
     normals:
-      temp_day:   [17, 18, 20, 22, 25, 28, 31, 31, 28, 24, 20, 17]
-      temp_night: [ 9, 10, 11, 13, 16, 19, 21, 21, 19, 15, 12,  9]
-      precip_mm:  [68, 56, 44, 38, 22,  6,  2,  4, 18, 48, 72, 74]
+      temp_day:   [17, 18, 20, 22, 24, 27, 29, 29, 27, 24, 20, 17]
+      temp_night: [ 8,  9, 10, 12, 14, 17, 20, 20, 17, 14, 10,  8]
+      precip_mm:  [70, 60, 55, 40, 22,  5,  1,  2, 18, 55, 75, 72]
 
-  - id: MA_SOUTH
-    name: "MA – Sør (Agadir/Souss-Massa)"
+  - id: MA_SOUTH_AGADIR
+    name: "MA – Sør (Agadir/Souss)"
     country: Morocco
     lat: 30.42
     lon: -9.60
-    aemet_station: null
-    key_crops: [tomatoes, peppers, courgettes, avocado, citrus]
+    key_crops: [tomater, bønner, avokado, bær]
+    notes: "Souss-dalen og Agadir-regionen. Tørt og stabilt. Vinter­produksjon."
     normals:
-      temp_day:   [18, 19, 21, 23, 25, 27, 28, 28, 27, 24, 21, 18]
-      temp_night: [10, 11, 13, 14, 16, 18, 20, 20, 19, 16, 13, 10]
-      precip_mm:  [32, 26, 22, 18, 10,  2,  0,  1,  6, 18, 28, 34]
+      temp_day:   [18, 20, 22, 23, 24, 26, 28, 28, 27, 25, 22, 19]
+      temp_night: [10, 11, 13, 14, 16, 18, 20, 21, 19, 16, 12, 10]
+      precip_mm:  [30, 25, 22, 15,  8,  2,  0,  0,  8, 22, 30, 28]
 
-# ── RISK THRESHOLDS ──────────────────────────────────────────────────────────
-risk_thresholds:
-  temperature:
-    low:      [-1.5, 1.5]    # deviation range for LOW risk
-    moderate: [-3.0, 3.0]    # deviation range for MODERATE risk
-    # outside moderate = HIGH risk
-
-  precipitation:
-    high_excess_pct: 150     # >150% above normal = HIGH risk
-    moderate_excess_pct: 50  # 50–150% above normal = MODERATE risk
-    high_deficit_pct: -40    # >40% below normal = MODERATE (drought) risk
-
-  frost_threshold_c: 2       # night temp below this = frost risk flag
-
-# ── STATUS INDICATORS ────────────────────────────────────────────────────────
-status_indicators:
-  warmer:  "🟢"   # >1.5°C above normal
-  normal:  "🟡"   # within ±1.5°C
-  cooler:  "🔵"   # >1.5°C below normal
+# =============================================================================
+# Terskelverdier for risikoklassifisering
+# Brukes av analyzer_new.py
+# =============================================================================
+thresholds:
+  temp_high_warning:  35.0   # Varmerisiko (dag)
+  temp_low_warning:    2.0   # Frostrisiko (natt)
+  precip_excess_pct:  80.0   # Nedbørsoverskudd: +80% over normalen
+  precip_deficit_pct: -40.0  # Nedbørsunderskudd: -40% under normalen
+  wind_high_ms:       20.0   # Vindkast-risiko høy: >20 m/s
+  wind_moderate_ms:   15.0   # Vindkast-risiko moderat: >15 m/s
