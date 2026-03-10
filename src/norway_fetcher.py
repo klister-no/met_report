@@ -643,6 +643,66 @@ def temp_color(avvik):
 
 # ── Hovedfunksjon ─────────────────────────────────────────────────────────────
 
+def fetch_historical_days(region: dict, days_back: int = 4) -> list:
+    """
+    Henter de siste N dager med observerte temperaturdata fra Open-Meteo arkiv.
+    Brukes for å vise historikk til venstre for prognose-søylene i sparkline.
+    Returnerer liste med dicts: {date, date_display, temp_max, temp_min, temp_avg,
+                                  precip, has_frost, temp_avvik, historical: True}
+    """
+    from datetime import date as date_cls
+    import calendar
+
+    today = date_cls.today()
+    start = today - timedelta(days=days_back)
+    end   = today - timedelta(days=1)  # gårsdagens data er siste komplette dag
+
+    url = (
+        f"https://archive-api.open-meteo.com/v1/archive"
+        f"?latitude={region['lat']}&longitude={region['lon']}"
+        f"&start_date={start.isoformat()}&end_date={end.isoformat()}"
+        f"&daily=temperature_2m_max,temperature_2m_min,precipitation_sum"
+        f"&timezone=Europe/Oslo"
+    )
+    try:
+        resp = requests.get(url, headers=HEADERS_METNO, timeout=12)
+        resp.raise_for_status()
+        d = resp.json().get("daily", {})
+        dates   = d.get("time", [])
+        t_maxes = d.get("temperature_2m_max", [])
+        t_mins  = d.get("temperature_2m_min", [])
+        precips = d.get("precipitation_sum", [])
+    except Exception as e:
+        logger.warning(f"  Open-Meteo historikk feilet for {region['name']}: {e}")
+        return []
+
+    result = []
+    normals_dict = CLIMATE_NORMALS.get(region["id"], {})
+    for i, day_str in enumerate(dates):
+        try:
+            dt = datetime.strptime(day_str, "%Y-%m-%d")
+        except Exception:
+            continue
+        t_max  = t_maxes[i] if i < len(t_maxes) else None
+        t_min  = t_mins[i]  if i < len(t_mins)  else None
+        precip = precips[i] if i < len(precips)  else None
+        t_avg  = round((t_max + t_min) / 2, 1) if t_max is not None and t_min is not None else None
+        normal = normals_dict.get(dt.month, 5.0)
+        avvik  = round(t_avg - normal, 1) if t_avg is not None else None
+        result.append({
+            "date":          day_str,
+            "date_display":  dt.strftime("%-d. %b"),
+            "temp_max":      t_max,
+            "temp_min":      t_min,
+            "temp_avg":      t_avg,
+            "precip":        precip,
+            "has_frost":     (t_min is not None and t_min <= 0),
+            "temp_avvik":    avvik,
+            "historical":    True,
+        })
+    return result
+
+
 def fetch_all_norway_regions() -> list:
     """
     Henter data for alle 7 norske produksjonsregioner.
@@ -750,6 +810,9 @@ def fetch_all_norway_regions() -> list:
 
             # Prognose
             "forecast_days":      fc.get("forecast_days", []),
+
+            # Historiske 4 dager (Open-Meteo arkiv)
+            "historical_days":    fetch_historical_days(region, days_back=4),
         })
 
     return results
