@@ -272,6 +272,17 @@ def build_sc_observation_cards(analyses: list) -> str:
     return '<div class="info-grid mt-2">\n' + "\n".join(cards) + "\n</div>"
 
 
+def _short_region_name(region_name: str) -> str:
+    """Extract short display name — strips country prefix, parentheses suffix."""
+    if "–" in region_name:
+        short = region_name.split("–", 1)[1].strip()
+    else:
+        short = region_name
+    # Fjern parentes-suffix som "(Gandia–Oliva)", "(ref.)", "(nord)" osv.
+    short = re.sub(r"\s*\([^)]*\)\s*$", "", short).strip()
+    return short
+
+
 def build_overview_rows(analyses: list) -> str:
     rows = []
     for a in analyses:
@@ -286,10 +297,17 @@ def build_overview_rows(analyses: list) -> str:
         pct_cls = ("anom-pos" if pct and pct > 150
                    else "anom-neg" if pct and pct < -20
                    else "anom-neu")
-        bg = ' style="background:#fff5f5;"' if a.get("risk_total") == "Høy" else ""
-        short = rn.split("–")[-1].strip() if "–" in rn else rn
 
-        # Vind — vis m/s med fargekode for terskel
+        # Kun rød bakgrunn ved reelt avvik (>+80% eller temp >+2°C over normalt)
+        t_anom = a.get("temp_day_anomaly")
+        is_exceptional = (
+            (pct is not None and abs(pct) > 80) or
+            (t_anom is not None and abs(t_anom) > 2.0)
+        )
+        bg = ' style="background:#fff5f5;"' if (a.get("risk_total") == "Høy" and is_exceptional) else ""
+        short = _short_region_name(rn)
+
+        # Vind — PROGNOSE neste 7 dager (ikke observasjon)
         gust = a.get("wind_gust_max_7d_ms")
         if gust is None:
             gust_str = "—"
@@ -312,7 +330,8 @@ def build_overview_rows(analyses: list) -> str:
             f'<td class="{pct_cls}">{pct_str}</td>'
             f'<td>{risk_pill(a.get("risk_temp","Lav"))}</td>'
             f'<td>{risk_pill(a.get("risk_precip","Lav"))}</td>'
-            f'<td class="{gust_cls}" style="font-variant-numeric:tabular-nums;">{gust_str}</td>'
+            f'<td class="{gust_cls}" style="font-variant-numeric:tabular-nums;" '
+            f'title="Maks vindkast i prognose, neste 7 dager (m/s)">{gust_str}</td>'
             f'<td>{risk_pill(a.get("risk_transport","Lav"))}</td>'
             f'<td>{risk_pill(a.get("risk_production","Lav"))}</td>'
             f'<td>{risk_pill(a.get("risk_total","Lav"))}</td>'
@@ -613,6 +632,116 @@ def _risk_bg(level: str) -> str:
     return {"Høy": "#fff5f5", "Moderat": "#fff7ed", "Lav": "#f0fdf4"}.get(level, "#f9fafb")
 
 
+# Regioner som vises i obs+prognose-sammenstillingen (prioriterte nøkkelregioner)
+_SUMMARY_REGIONS = [
+    "IT_PIEDMONT", "IT_ALTO_ADIGE", "IT_CENTRAL", "IT_NAPLES", "IT_AMALFI",
+    "ES_MURCIA_LORCA", "ES_MURCIA_CAMPO", "ES_CASTELLON",
+    "ES_VALENCIA_NORTE", "ES_VALENCIA_SUR",
+    "ES_ALMERIA", "ES_HUELVA", "ES_SEVILLA",
+    "PT_LISBON_ALGARVE", "MA_NORTH_RABAT", "MA_SOUTH_AGADIR",
+]
+
+
+def build_obs_forecast_summary(analyses: list) -> str:
+    """
+    Kompakt sammenstilling per region: observert forrige uke + prognose neste 7 dager.
+    Viser kun faktiske avvik — ingen unødvendige farger for normalvariasjon.
+    Rød tekst = eksepsjonelt avvik (>+80% nedbør eller >±2°C temperatur).
+    """
+    if not analyses:
+        return ""
+
+    rows = []
+    for a in analyses:
+        rid   = a.get("region_id", "")
+        rn    = a.get("region_name", rid)
+        short = _short_region_name(rn)
+        cc    = rid.split("_")[0]
+
+        # ── Obs forrige uke ──────────────────────────────────────────────────
+        t_obs    = a.get("temp_day_actual")
+        t_norm   = a.get("temp_day_normal")
+        t_anom   = a.get("temp_day_anomaly")
+        p_obs    = a.get("precip_actual_mm")
+        p_norm   = a.get("precip_normal_mm")
+        p_pct    = a.get("precip_anomaly_pct")
+        p_30d    = a.get("precip_30d_anomaly_pct")
+
+        # ── Prognose neste 7d ────────────────────────────────────────────────
+        t_fc     = a.get("forecast_temp_anomaly")   # °C avvik fra normal
+        gust_fc  = a.get("wind_gust_max_7d_ms")
+
+        # ── Fargesetting: rød kun ved reelt eksepsjonelt avvik ───────────────
+        def _val_color(val, threshold_pos, threshold_neg=None):
+            if val is None:
+                return "#374151"  # mørkgrå = nøytral
+            thr_neg = threshold_neg if threshold_neg is not None else -threshold_pos
+            if val > threshold_pos:
+                return "#dc2626"   # rød
+            if val < thr_neg:
+                return "#2563eb"   # blå (kald/tørke)
+            return "#374151"       # nøytral mørkgrå
+
+        t_color  = _val_color(t_anom,  2.0, -2.0)
+        p_color  = _val_color(p_pct,  80.0, -40.0)
+        tf_color = _val_color(t_fc,    2.0, -2.0)
+
+        # ── Formater verdier ─────────────────────────────────────────────────
+        t_str  = f"{t_obs:.0f}°C ({t_anom:+.1f})" if t_obs is not None and t_anom is not None else (f"{t_obs:.0f}°C" if t_obs is not None else "—")
+        p_str  = f"{p_obs:.0f}mm ({p_pct:+.0f}%)" if p_obs is not None and p_pct is not None else (f"{p_obs:.0f}mm" if p_obs is not None else "—")
+        p30_str = f" · 30d: {p_30d:+.0f}%" if p_30d is not None else ""
+        tf_str = f"{t_fc:+.1f}°C vs. norm" if t_fc is not None else "—"
+        gust_str = f"{gust_fc:.0f} m/s" if gust_fc is not None else "—"
+        gust_color = "#dc2626" if gust_fc and gust_fc > 20 else "#92400e" if gust_fc and gust_fc > 15 else "#374151"
+
+        # ── Samlet risikoindikator ───────────────────────────────────────────
+        risk = a.get("risk_total", "Lav")
+        risk_dot = {"Høy": "🔴", "Moderat": "🟡", "Lav": "🟢"}.get(risk, "⚪")
+
+        rows.append(
+            f'<tr style="border-bottom:1px solid #e5e7eb;">'
+            f'<td style="padding:6px 10px;font-size:13px;font-weight:600;color:#111827;white-space:nowrap;">'
+            f'{risk_dot} {short} <span style="font-size:11px;color:#9ca3af;font-weight:400;">{cc}</span></td>'
+            # Obs temp
+            f'<td style="padding:6px 10px;font-size:13px;color:{t_color};font-variant-numeric:tabular-nums;">{t_str}</td>'
+            # Obs nedbør
+            f'<td style="padding:6px 10px;font-size:13px;color:{p_color};font-variant-numeric:tabular-nums;">{p_str}{p30_str}</td>'
+            # Prognose temp-avvik
+            f'<td style="padding:6px 10px;font-size:13px;color:{tf_color};font-variant-numeric:tabular-nums;">{tf_str}</td>'
+            # Prognose vindkast
+            f'<td style="padding:6px 10px;font-size:13px;color:{gust_color};font-variant-numeric:tabular-nums;">{gust_str}</td>'
+            f'</tr>'
+        )
+
+    table = (
+        '<div style="margin:1.5rem 0;">'
+        '<div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:8px;">'
+        '📋 Obs + prognose — alle regioner</div>'
+        '<div style="font-size:11px;color:#6b7280;margin-bottom:10px;">'
+        'Obs = forrige uke · Prognose = neste 7 dager · '
+        '<span style="color:#dc2626;">Rød</span> = eksepsjonelt avvik (&gt;±2°C / &gt;±80% nedbør) · '
+        '<span style="color:#2563eb;">Blå</span> = kald/tørr anomali</div>'
+        '<div style="overflow-x:auto;">'
+        '<table style="border-collapse:collapse;width:100%;background:#fff;border:1px solid #e5e7eb;border-radius:6px;">'
+        '<thead>'
+        '<tr style="background:#f9fafb;border-bottom:2px solid #e5e7eb;">'
+        '<th style="padding:7px 10px;text-align:left;font-size:12px;color:#6b7280;font-weight:600;">Region</th>'
+        '<th style="padding:7px 10px;text-align:left;font-size:12px;color:#6b7280;font-weight:600;">Temp obs. (avvik)</th>'
+        '<th style="padding:7px 10px;text-align:left;font-size:12px;color:#6b7280;font-weight:600;">Nedbør obs. (avvik)</th>'
+        '<th style="padding:7px 10px;text-align:left;font-size:12px;color:#6b7280;font-weight:600;">Temp prog. 7d</th>'
+        '<th style="padding:7px 10px;text-align:left;font-size:12px;color:#6b7280;font-weight:600;">Vindkast prog.</th>'
+        '</tr>'
+        '</thead>'
+        '<tbody>'
+        + "\n".join(rows) +
+        '</tbody>'
+        '</table>'
+        '</div>'
+        '</div>'
+    )
+    return table
+
+
 def build_dashboard(analyses: list, gibraltar_data: dict | None = None) -> str:
     """
     Dashboard-fane: statuskort per region + varselseksjon + Gibraltar-linje.
@@ -751,7 +880,7 @@ def build_dashboard(analyses: list, gibraltar_data: dict | None = None) -> str:
     else:
         gib_bar = ""
 
-    return f"{summary_bar}\n{gib_bar}\n{alerts_section}\n{cards_grid}"
+    return f"{summary_bar}\n{gib_bar}\n{alerts_section}\n{cards_grid}\n{build_obs_forecast_summary(analyses)}"
 
 
 def build_precip_alert(analyses: list) -> str:
