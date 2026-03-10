@@ -908,14 +908,14 @@ def build_port_cards(analyses: list) -> str:
         },
         {
             "name": "⚓ Puerto de Valencia",
-            "country": "🇪🇸 Valencia — Eksport Murcia/Levante",
-            "regions": ["ES_MURCIA"],
+            "country": "🇪🇸 Valencia — Eksport Murcia/Levante/Valencia",
+            "regions": ["ES_MURCIA_CAMPO", "ES_MURCIA_LORCA", "ES_VALENCIA_SUR"],
             "type": "export",
         },
         {
             "name": "⚓ Puerto de Cartagena",
-            "country": "🇪🇸 Murcia — Regional eksport",
-            "regions": ["ES_MURCIA", "ES_ALMERIA"],
+            "country": "🇪🇸 Murcia — Regional eksport Campo de Cartagena",
+            "regions": ["ES_MURCIA_CAMPO", "ES_ALMERIA"],
             "type": "export",
         },
         {
@@ -986,9 +986,9 @@ def build_port_cards(analyses: list) -> str:
     ) if cards_es else ""
 
     # ── Dynamisk fergekort Tanger Med–Algeciras ───────────────────────────────
-    huelva  = next((x for x in analyses if x["region_id"] == "ES_HUELVA"),  None)
-    sevilla = next((x for x in analyses if x["region_id"] == "ES_SEVILLA"), None)
-    ma_north = next((x for x in analyses if x["region_id"] == "MA_NORTH"),  None)
+    huelva  = next((x for x in analyses if x["region_id"] == "ES_HUELVA"),       None)
+    sevilla = next((x for x in analyses if x["region_id"] == "ES_SEVILLA"),      None)
+    ma_north = next((x for x in analyses if x["region_id"] == "MA_NORTH_RABAT"), None)
 
     ferry_risks = [
         x.get("risk_transport", "Lav") for x in [huelva, sevilla, ma_north] if x
