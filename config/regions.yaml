@@ -29,17 +29,37 @@ regions:
 
   # ── ITALIA ──────────────────────────────────────────────────────────────────
 
-  - id: IT_PO_VALLEY
-    name: "IT – Po-dalen"
+  - id: IT_PIEDMONT
+    name: "IT – Piemonte (Cuneo)"
     country: Italy
-    lat: 44.90
-    lon: 11.20
-    key_crops: [grønnsaker, frukt, mais, hvete]
-    notes: "Nord-Italia. Stor produksjonsregion. Risiko: frost om vinteren, tørke om sommeren."
+    lat: 44.38
+    lon: 7.55
+    key_crops: [pærer, epler, druer, hvitløk, grønnsaker]
+    notes: >
+      Cuneo-provinsen i Sør-Piemonte. Viktig pære- og eplesone (IGP Pera Coscia del Nord),
+      grønnsaker og vin. Tilsvarer den nordlige Po-slatten i produksjonsstatistikk.
+      Åpen for Alpevind fra vest. Open-Meteo arkiv er primærdatakilde.
     normals:
-      temp_day:   [4,  6, 12, 17, 22, 26, 29, 28, 23, 17, 10,  5]
-      temp_night: [-2, 0,  4,  8, 13, 17, 19, 19, 15,  9,  4,  0]
-      precip_mm:  [50, 48, 55, 68, 80, 65, 45, 55, 75, 90, 80, 55]
+      temp_day:   [5,  7, 12, 17, 22, 26, 29, 28, 23, 16, 10,  5]
+      temp_night: [-2, 0,  4,  8, 13, 17, 19, 18, 14,  8,  3, -1]
+      precip_mm:  [45, 42, 52, 72, 90, 75, 50, 60, 80, 95, 85, 52]
+
+  - id: IT_ALTO_ADIGE
+    name: "IT – Alto Adige / Val Venosta"
+    country: Italy
+    lat: 46.62
+    lon: 10.86
+    key_crops: [epler, pærer, aprikoser, druer, bær]
+    notes: >
+      Val Venosta (Vinschgau), Sør-Tirol — Europas største sammenhengende eplesone.
+      ~18 000 hektar, ~350 000 tonn/år. 1 av 10 europeiske epler kommer herfra.
+      Sentrum: Latsch/Laces (639m), tørt alpinklima (<500mm/år), store dag-/nattforskjeller.
+      Kritisk risiko: sen frost april (blomstringstid), hagl, Föhn-vind om sommeren.
+      Open-Meteo arkiv er primærdatakilde (ingen nasjonal API tilsvarende AEMET).
+    normals:
+      temp_day:   [3,  5, 10, 15, 20, 25, 28, 27, 22, 15,  8,  3]
+      temp_night: [-5, -3,  1,  5, 10, 14, 16, 15, 11,  5,  0, -4]
+      precip_mm:  [25, 22, 28, 35, 45, 48, 50, 52, 42, 35, 28, 22]
 
   - id: IT_CENTRAL
     name: "IT – Sentral-Italia"
@@ -53,17 +73,29 @@ regions:
       temp_night: [2,  3,  5,  8, 12, 16, 19, 19, 15, 11,  6,  3]
       precip_mm:  [65, 60, 65, 70, 75, 50, 25, 30, 65, 95,100, 80]
 
-  - id: IT_NAPLES_AMALFI
-    name: "IT – Napoli/Amalfi"
+  - id: IT_NAPLES
+    name: "IT – Napoli"
     country: Italy
-    lat: 40.65
-    lon: 14.80
-    key_crops: [tomater, sitroner, aubergine, paprika]
-    notes: "Campania-kysten og Amalfi-området. Varm og fuktig om høsten, risiko for ekstremnedbør."
+    lat: 40.85
+    lon: 14.25
+    key_crops: [tomater, aubergine, paprika, sitrus]
+    notes: "Campania-kysten. Varm og fuktig om høsten, risiko for ekstremnedbør."
     normals:
       temp_day:   [13, 14, 16, 19, 24, 28, 31, 31, 27, 22, 17, 14]
       temp_night: [ 6,  7,  9, 11, 15, 19, 22, 22, 18, 14, 10,  7]
       precip_mm:  [90, 80, 75, 65, 55, 30, 15, 20, 60,110,115,100]
+
+  - id: IT_AMALFI
+    name: "IT – Amalfi-kysten"
+    country: Italy
+    lat: 40.63
+    lon: 14.60
+    key_crops: [sitroner, paprika, aubergine, tomater]
+    notes: "Amalfi-kysten (Ravello/Positano-sonen). Brattkyst, Sfusato-sitron PGI. Høy nedbørsrisiko høst."
+    normals:
+      temp_day:   [13, 14, 16, 19, 23, 27, 30, 30, 26, 22, 17, 14]
+      temp_night: [ 7,  7,  9, 12, 15, 19, 22, 22, 19, 15, 11,  8]
+      precip_mm:  [120,105, 95, 80, 65, 35, 18, 22, 75,130,140,125]
 
   # ── SPANIA – MURCIA (oppdatert 2026-03-10) ──────────────────────────────────
   # Endring: splitter gammel ES_MURCIA (Murcia by, 7178I) i to presise regioner.
