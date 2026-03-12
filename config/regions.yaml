@@ -134,6 +134,24 @@ regions:
       temp_night: [ 6,  7,  9, 12, 16, 20, 23, 23, 19, 14,  9,  6]
       precip_mm:  [25, 22, 28, 30, 25, 10,  3,  5, 22, 40, 32, 24]
 
+  - id: ES_AGUILAS
+    name: "ES – Murcia: Águilas"
+    country: Spain
+    aemet_station: "7002Y"         # Águilas, 32m, aktiv, daglige data
+    lat: 37.42
+    lon: -1.59
+    key_crops: [iceberg-salat, tomater, sitrus, paprika, blomster]
+    notes: >
+      Águilas-kommunen sørvest i Murcia, grensende mot Almería.
+      32m over havet, tørt kystklima — varme, tørre somre, milde vintre.
+      Eksplisitt nevnt som iceberg-lettuceregion ved siden av Campo de Cartagena og Guadalentín.
+      AEMET-varselsone: Valle del Guadalentín, Lorca y Águilas.
+      Klimatisk bro mellom Murcia og Almería — noe tørrere enn Torre-Pacheco.
+    normals:
+      temp_day:   [16, 17, 20, 23, 27, 31, 33, 33, 29, 24, 19, 16]
+      temp_night: [ 8,  9, 11, 13, 17, 21, 24, 24, 20, 15, 11,  8]
+      precip_mm:  [22, 18, 22, 24, 18,  6,  1,  2, 18, 35, 28, 20]
+
   # ── SPANIA – VALENCIA (ny oppdeling 2026-03-10) ──────────────────────────────
   # Erstatter en tenkt generisk Valencia-region med tre presise soner som har
   # ulike værmønstre og produktprofiler.
