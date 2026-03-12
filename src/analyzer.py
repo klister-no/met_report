@@ -53,6 +53,7 @@ PRECIP_MONTHLY_NORMALS_MM = {
     # ── Spania – Murcia (to separate soner fra 2026-03-10) ──────────────────
     "ES_MURCIA_LORCA":     [ 22,  20,  25,  28,  25,  12,   4,   6,  22,  42,  35,  25],
     "ES_MURCIA_CAMPO":     [ 25,  22,  28,  30,  25,  10,   3,   5,  22,  40,  32,  24],
+    "ES_AGUILAS":          [ 22,  18,  22,  24,  18,   6,   1,   2,  18,  35,  28,  20],
     # ── Spania – Valencia (tre soner fra 2026-03-10) ─────────────────────────
     "ES_VALENCIA_NORTE":   [ 35,  30,  35,  38,  42,  22,  10,  15,  58,  75,  55,  40],
     "ES_CASTELLON":        [ 40,  35,  40,  42,  50,  28,  12,  18,  65,  80,  60,  45],
