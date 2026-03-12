@@ -252,7 +252,7 @@ def build_sc_observation_cards(analyses: list) -> str:
 
     if len(high) >= 2:
         cards.append(
-            f'<div class="info-card" style="border-left:3px solid #dc2626;background:#fff5f5;">'
+            f'<div class="info-card" style="border-left:3px solid #dc2626;background:#fff8f8;">'
             f'<span class="info-card-icon">⚠️</span>'
             f'<div class="info-card-title">Simultankrise — {len(high)} regioner</div>'
             f'<div class="info-card-body" style="font-size:12px;">'
@@ -304,7 +304,7 @@ def build_overview_rows(analyses: list) -> str:
             (pct is not None and abs(pct) > 80) or
             (t_anom is not None and abs(t_anom) > 2.0)
         )
-        bg = ' style="background:#fff5f5;"' if (a.get("risk_total") == "Høy" and is_exceptional) else ""
+        bg = ' style="background:#fff8f8;"' if (a.get("risk_total") == "Høy" and is_exceptional) else ""
         short = _short_region_name(rn)
 
         # Vind — PROGNOSE neste 7 dager (ikke observasjon)
@@ -415,7 +415,7 @@ def build_precip_rows(analyses: list) -> str:
                    else "pill-mod" if pct and pct > 50
                    else "pill-cool" if pct and pct < -20
                    else "pill-low")
-        bg       = ' style="background:#fff5f5;"' if rp == "Høy" else ""
+        bg       = ' style="background:#fff8f8;"' if rp == "Høy" else ""
         obs_str  = f"{obs:.1f}"   if obs  is not None else "N/A"
         norm_str = f"{norm:.1f}"  if norm is not None else "N/A"
         anom_str = f"{anom:+.1f}" if anom is not None else "N/A"
@@ -440,7 +440,7 @@ def build_supply_chain_rows(analyses: list) -> str:
     for a in analyses:
         rn    = a["region_name"]
         cc    = a["region_id"].split("_")[0]
-        bg    = ' style="background:#fff5f5;"' if a.get("risk_total") == "Høy" else ""
+        bg    = ' style="background:#fff8f8;"' if a.get("risk_total") == "Høy" else ""
         short = rn.split("–")[-1].strip() if "–" in rn else rn
 
         # Vind — vis m/s + risikopille
@@ -629,13 +629,13 @@ def _risk_color(level: str) -> str:
 
 
 def _risk_bg(level: str) -> str:
-    return {"Høy": "#fff5f5", "Moderat": "#fff7ed", "Lav": "#f0fdf4"}.get(level, "#f9fafb")
+    return {"Høy": "#fff1f2", "Moderat": "#fff7ed", "Lav": ""}.get(level, "")
 
 
 # Regioner som vises i obs+prognose-sammenstillingen (prioriterte nøkkelregioner)
 _SUMMARY_REGIONS = [
     "IT_PIEDMONT", "IT_ALTO_ADIGE", "IT_CENTRAL", "IT_NAPLES", "IT_AMALFI",
-    "ES_MURCIA_LORCA", "ES_MURCIA_CAMPO", "ES_CASTELLON",
+    "ES_MURCIA_LORCA", "ES_MURCIA_CAMPO", "ES_AGUILAS", "ES_CASTELLON",
     "ES_VALENCIA_NORTE", "ES_VALENCIA_SUR",
     "ES_ALMERIA", "ES_HUELVA", "ES_SEVILLA",
     "PT_LISBON_ALGARVE", "MA_NORTH_RABAT", "MA_SOUTH_AGADIR",
@@ -1194,7 +1194,7 @@ def build_change_rows(analyses: list, prev_analyses: list = None) -> str:
             risk_prev = prev.get("risk_total", "Lav") if prev else risk_now
             if risk_now == "Høy" and risk_prev != "Høy":
                 row_cls = "change-row-up"
-                bg = ' style="background:#fff5f5;"'
+                bg = ' style="background:#fff8f8;"'
             elif risk_now == "Lav" and risk_prev == "Høy":
                 row_cls = "change-row-down"
                 bg = ' style="background:#f0fff4;"'
@@ -1205,7 +1205,7 @@ def build_change_rows(analyses: list, prev_analyses: list = None) -> str:
         else:
             # Baseline mode
             row_cls = "change-row-up" if risk_now == "Høy" else "change-row-same"
-            bg = ' style="background:#fff5f5;"' if risk_now == "Høy" else ""
+            bg = ' style="background:#fff8f8;"' if risk_now == "Høy" else ""
             note_map = {"Høy": "Høy risiko registrert", "Moderat": "Moderat risiko", "Lav": "Normalt vintersignal"}
             note = note_map.get(risk_now, "")
 
